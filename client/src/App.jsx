@@ -1,34 +1,26 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
+import Signup from "./PublicPages/Signup/signup.jsx"
+import Login from "./PublicPages/Login/login.jsx"
+import Home from "./PrivatePages/Home/home.jsx"
+import ExploreStocks from "./PrivatePages/LeaguePages/ExploreStocks"
+import LeagueHomePage from "./PrivatePages/LeaguePages/LeagueHomePage"
+import MatchUp from "./PrivatePages/LeaguePages/MatchUp"
+import MyStocks from "./PrivatePages/LeaguePages/MyStocks"
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <BrowserRouter>
+      {/* These will be Public Pages*/}
+      <Route path="/Signup" element={<Signup></Signup>}></Route>
+      <Route path="/Login" element={<Login></Login>}></Route>
+      {/* These will be Private Pages*/}
+      <Route path="/Private/Home" element={<Home></Home>}></Route>
+      <Route path="/Private/ExploreStocks" element={<ExploreStocks></ExploreStocks>}></Route>
+      <Route path="/Private/LeagueHomePage" element={<LeagueHomePage></LeagueHomePage>}></Route>
+      <Route path="/Private/MatchUp" element={<MatchUp></MatchUp>}></Route>
+      <Route path="/Private/MyStocks" element={<MyStocks></MyStocks>}></Route>
+    </BrowserRouter>
   )
 }
 
