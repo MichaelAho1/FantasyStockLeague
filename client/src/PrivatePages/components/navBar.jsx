@@ -14,13 +14,10 @@ function navBar() {
             <Link to="/Private/Home">Home</Link>
           </p>
           <p className={styles.navbarItem}>
-            <Link to="/Private/ExploreStocks">Explore Stocks</Link>
-          </p>
-          <p className={styles.navbarItem}>
             <Link to="/Private/Matchup">Matchup</Link>
           </p>
           <p className={styles.navbarItem}>
-            <Link to="/Private/MyStocks">My Stocks</Link>
+            <Link to="/Private/ExploreStocks">Explore Stocks</Link>
           </p>
         </div>
       </nav>

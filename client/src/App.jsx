@@ -11,12 +11,9 @@ function App() {
   return (
       <BrowserRouter>
         <Routes>
-        {/* These will be Public Pages*/}
-
         <Route path="/Signup" element={<Signup></Signup>}></Route>
         <Route path="/Login" element={<Login></Login>}></Route>
-        
-        {/* These will be Private Pages*/}
+
         <Route path="/Private/Home" element={<Home></Home>}></Route>
         <Route path="/Private/MatchUp" element={<MatchUp></MatchUp>}></Route>
         <Route path="/Private/ExploreStocks" element={<ExploreStocks></ExploreStocks>}></Route>
