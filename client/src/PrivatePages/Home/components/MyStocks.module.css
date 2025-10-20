@@ -1,4 +1,3 @@
-/* My Stocks Section Styling */
 .myStocksSection {
   background: #ffffff;
   border: 1px solid #e5e7eb;
@@ -28,7 +27,6 @@
   letter-spacing: -0.025em;
 }
 
-/* Stock Table Styling */
 .stockTable {
   background: #ffffff;
   border-radius: 6px;
@@ -128,7 +126,6 @@
   font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
 }
 
-/* Stock Summary Styling */
 .stockSummary {
   background: #ffffff;
   border-radius: 8px;

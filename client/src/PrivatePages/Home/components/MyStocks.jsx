@@ -2,7 +2,6 @@ import { useState } from 'react'
 import styles from './MyStocks.module.css'
 
 function MyStocks() {
-  // Sample stock data - in a real app this would come from an API
   const [stocks] = useState([
     { ticker: 'AAPL', name: 'Apple Inc.', startPrice: 150.00, currentPrice: 155.50, shares: 10 },
     { ticker: 'GOOGL', name: 'Alphabet Inc.', startPrice: 2800.00, currentPrice: 2750.00, shares: 2 },
@@ -30,7 +29,6 @@ function MyStocks() {
     <div className={styles.myStocksSection}>
       <h2>My Stocks</h2>
       
-      {/* Stock Table */}
       <div className={styles.stockTable}>
         <div className={styles.tableHeader}>
           <div>Ticker</div>
@@ -61,7 +59,6 @@ function MyStocks() {
         </div>
       </div>
 
-      {/* Summary Section */}
       <div className={styles.stockSummary}>
         <div className={styles.summaryItem}>
           <span className={styles.summaryLabel}>Total Stocks Value:</span>
