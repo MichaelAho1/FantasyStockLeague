@@ -1,7 +1,22 @@
+import { useState } from 'react'
 import SearchBar from './SearchBar.jsx'
+import Pagination from '../../../components/Pagination.jsx'
 import styles from './AllStocksList.module.css'
 
 function AllStocksList({ stocks, searchTerm, onSearch }) {
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
+
+  // Calculate pagination
+  const totalPages = Math.ceil(stocks.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentStocks = stocks.slice(startIndex, endIndex)
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page)
+  }
+
   return (
     <div className={styles.allStocksSection}>
       <div className={styles.sectionHeader}>
@@ -18,12 +33,12 @@ function AllStocksList({ stocks, searchTerm, onSearch }) {
           <div>Change %</div>
         </div>
         <div className={styles.stocksTableBody}>
-          {stocks.length === 0 ? (
+          {currentStocks.length === 0 ? (
             <div className={styles.noResults}>
               {searchTerm ? `No stocks found for "${searchTerm}"` : 'No stocks available'}
             </div>
           ) : (
-            stocks.map((stock, index) => (
+            currentStocks.map((stock, index) => (
               <div key={index} className={styles.stockRow}>
                 <div className={styles.ticker}>{stock.ticker}</div>
                 <div className={styles.stockName}>{stock.name}</div>
@@ -39,6 +54,12 @@ function AllStocksList({ stocks, searchTerm, onSearch }) {
           )}
         </div>
       </div>
+
+      <Pagination 
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={handlePageChange}
+      />
     </div>
   )
 }

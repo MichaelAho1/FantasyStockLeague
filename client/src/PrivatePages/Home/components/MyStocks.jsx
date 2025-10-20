@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Pagination from '../../../components/Pagination.jsx'
 import styles from './MyStocks.module.css'
 
 function MyStocks() {
@@ -20,10 +21,23 @@ function MyStocks() {
     { ticker: 'CRM', name: 'Salesforce Inc.', startPrice: 220.00, currentPrice: 225.80, shares: 5 }
   ])
 
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 9
+
   // Calculate totals
   const totalValue = stocks.reduce((sum, stock) => sum + (stock.currentPrice * stock.shares), 0)
   const totalStartValue = stocks.reduce((sum, stock) => sum + (stock.startPrice * stock.shares), 0)
   const totalProfit = totalValue - totalStartValue
+
+  // Calculate pagination
+  const totalPages = Math.ceil(stocks.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentStocks = stocks.slice(startIndex, endIndex)
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page)
+  }
 
   return (
     <div className={styles.myStocksSection}>
@@ -39,7 +53,7 @@ function MyStocks() {
           <div>Shares</div>
         </div>
         <div className={styles.stockTableBody}>
-          {stocks.map((stock, index) => {
+          {currentStocks.map((stock, index) => {
             const profit = (stock.currentPrice - stock.startPrice) * stock.shares
             const profitPercent = ((stock.currentPrice - stock.startPrice) / stock.startPrice) * 100
             
@@ -58,7 +72,11 @@ function MyStocks() {
           })}
         </div>
       </div>
-
+      <Pagination 
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={handlePageChange}
+      />
       <div className={styles.stockSummary}>
         <div className={styles.summaryItem}>
           <span className={styles.summaryLabel}>Total Stocks Value:</span>
