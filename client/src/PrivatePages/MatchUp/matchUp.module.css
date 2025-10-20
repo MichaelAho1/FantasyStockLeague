@@ -1,0 +1,8 @@
+/* MatchUp page container */
+.matchUpContainer {
+  margin-top: 80px;
+  padding: 20px;
+  min-height: calc(100vh - 80px);
+  background: #ffffff;
+  box-sizing: border-box;
+}
