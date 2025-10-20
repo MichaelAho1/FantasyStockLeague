@@ -4,7 +4,6 @@ import TeamCard from "./components/TeamCard.jsx"
 import styles from "./matchUp.module.css"
 
 function MatchUp() {
-  // Sample matchup data - in a real app this would come from props or API
   const [matchup] = useState({
     player1: {
       name: "Team #5",
