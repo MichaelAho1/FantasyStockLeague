@@ -7,7 +7,7 @@ import requests
 from dotenv import load_dotenv
 from datetime import date
 
-from server.catalog.stock_utils import get_current_stock_price, get_stock_closing_price
+from catalog.stock_utils import get_current_stock_price, get_stock_closing_price
 
 def response_not_found_view(request, exception=None):
     return HttpResponseNotFound("Page not found", status=404)

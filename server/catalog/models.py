@@ -25,8 +25,8 @@ class User(models.Model):
     
 class Stock(models.Model):
     """Model representing a specific stock."""
-    user_id = models.ForeignKey(User, on_delete=models.SET_DEFAULT)
-    ticker = models.CharField(primary_key = True)
+    user_id = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    ticker = models.CharField(primary_key=True, max_length=10)
     name = models.CharField(max_length=200)  # name of stock (e.g. Nvidia, Apple)
     start_price = models.FloatField()
     current_price = models.FloatField()
