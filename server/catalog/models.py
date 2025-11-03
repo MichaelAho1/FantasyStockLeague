@@ -65,7 +65,6 @@ class LeagueParticipant(models.Model):
 
     class Meta:
         unique_together = ['league', 'user']
-        ordering = ['-total_value']
     
     def __str__(self):
         return f"{self.user.username} in {self.league.name}"
@@ -76,22 +75,23 @@ class LeagueParticipant(models.Model):
             self.current_balance = self.league.initial_balance
             self.total_value = self.league.initial_balance
         super().save(*args, **kwargs)
-    
-    @property
-    def profit(self):
-        return self.total_value - self.league.initial_balance
 
 class UserLeagueStocks(models.Model):
     """Links league participant to a stock"""
     LeagueParticipant = models.ForeignKey(LeagueParticipant, on_delete=models.CASCADE)
     stock = models.ForeignKey(Stock, on_delete=models.CASCADE)
-    priceBought = models.DecimalField(decimal_places=2, default=0.00)
+    priceBought = models.DecimalField(decimal_places=2, default=0.00, max_digits=10)
+    shares = models.DecimalField(decimal_places=2, default=0.01, max_digits=10)
+
+    def __str__(self):
+        return f"{self.LeagueParticipant} in {self.stock}"
 
 class LeagueSchedule(models.Model):
     """Model representing a leagues schedule"""
     weekNumber = models.PositiveIntegerField()
     League = models.ForeignKey(LeagueSetting, on_delete=models.CASCADE, related_name="schedules")
 
+    # This needs to be actual matchups (User vs User) instead of just char fields
     matchup1 = models.CharField(max_length=100, blank=True, null=True)
     matchup2 = models.CharField(max_length=100, blank=True, null=True)
     matchup3 = models.CharField(max_length=100, blank=True, null=True)
