@@ -22,6 +22,7 @@ class ViewAllStocks(generics.ListCreateAPIView):
             stocks.append(data)
         return Response(stocks)
 
+
 class ViewAllOwnedStocks(generics.ListCreateAPIView):
     #serializer_class = UserLeagueStocksSerializer
     permission_classes = [IsAuthenticated]
@@ -32,7 +33,6 @@ class ViewAllOwnedStocks(generics.ListCreateAPIView):
         stocks = []
         for stock in owned_stocks:
             data = {
-                "price_bought":stock.price_bought,
                 "shares":stock.shares,
                 "current_price":stock.stock.current_price,
                 "start_price":stock.stock.start_price,
@@ -42,3 +42,18 @@ class ViewAllOwnedStocks(generics.ListCreateAPIView):
             stocks.append(data)
         return Response(stocks)
 
+
+class ViewAllStockWeeklyProfits(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, format=None):
+        current_user = request.user
+        owned_stocks = (UserLeagueStocks.objects.filter(current_user))
+        stocks = []
+        for stock in owned_stocks:
+            #Calculate weekly profit here
+            data = {
+                "ticker":stock.stock.ticker,
+            }
+            stocks.append(data)
+        return Response(stocks)

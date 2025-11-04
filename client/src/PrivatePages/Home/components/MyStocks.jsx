@@ -47,9 +47,9 @@ function MyStocks() {
         <div className={styles.tableHeader}>
           <div>Ticker</div>
           <div>Stock Name</div>
-          <div>Week Start Price</div>
+          <div>Day Start Price</div>
           <div>Current Price</div>
-          <div>Weekly Profit</div>
+          <div>Daily Price Change</div>
           <div>Shares</div>
         </div>
         <div className={styles.stockTableBody}>
