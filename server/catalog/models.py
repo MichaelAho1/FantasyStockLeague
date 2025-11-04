@@ -45,11 +45,10 @@ class LeagueSetting(models.Model):
     def clean(self):
         if self.end_date <= self.start_date:
             raise ValidationError("End date must be after start date")
-    
-    def create(self):
-        if not self.schedules.exists():  
-            for week in range(1, 9): 
-                LeagueSchedule.objects.create(weekNumber=week, League=self)
+
+    def create_matchups(self):
+        """Create matchups for the league"""
+        #TODO
 
     @property
     def is_ongoing(self):
@@ -62,6 +61,8 @@ class LeagueParticipant(models.Model):
     league = models.ForeignKey(LeagueSetting, on_delete=models.CASCADE, related_name='participants')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='league_participations')
     current_balance = models.DecimalField(max_digits=12, decimal_places=2)
+    wins = models.CharField(max_length=100, blank=True, null=True)  
+    losses = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
         unique_together = ['league', 'user']
@@ -86,20 +87,19 @@ class UserLeagueStocks(models.Model):
     def __str__(self):
         return f"{self.LeagueParticipant} in {self.stock}"
 
-class LeagueSchedule(models.Model):
-    """Model representing a leagues schedule"""
+class Matchup(models.Model):
+    """Model representing a matchup between two users in a league"""
+    league = models.ForeignKey(LeagueSetting, on_delete=models.CASCADE, related_name="matchups")
     weekNumber = models.PositiveIntegerField()
-    League = models.ForeignKey(LeagueSetting, on_delete=models.CASCADE, related_name="schedules")
-
-    # This needs to be actual matchups (User vs User) instead of just char fields
-    matchup1 = models.CharField(max_length=100, blank=True, null=True)
-    matchup2 = models.CharField(max_length=100, blank=True, null=True)
-    matchup3 = models.CharField(max_length=100, blank=True, null=True)
-    matchup4 = models.CharField(max_length=100, blank=True, null=True)
-
+    participant1 = models.ForeignKey(LeagueParticipant, on_delete=models.CASCADE, related_name="matchups_as_p1")
+    participant2 = models.ForeignKey(LeagueParticipant, on_delete=models.CASCADE, related_name="matchups_as_p2")
+    profit1 = models.DecimalField(decimal_places=2, default=0.00, max_digits=10)
+    profit2 = models.DecimalField(decimal_places=2, default=0.00, max_digits=10)
+    winner = models.ForeignKey(LeagueParticipant, on_delete=models.SET_NULL, null=True, blank=True, related_name="matchup_wins")
+    
     class Meta:
-        unique_together = ['League', 'weekNumber']
+        unique_together = ['league', 'weekNumber', 'participant1', 'participant2']
         ordering = ['weekNumber']
-
+    
     def __str__(self):
-        return f"Week {self.weekNumber} - {self.League.name}"
+        return f"Week {self.weekNumber}: {self.participant1.user.username} vs {self.participant2.user.username} ({self.league.name})"
