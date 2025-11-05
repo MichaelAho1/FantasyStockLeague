@@ -7,7 +7,7 @@ import requests
 from dotenv import load_dotenv
 from datetime import date
 
-from catalog.stock_utils import get_current_stock_price, get_stock_closing_price
+from catalog.stock_utils import get_current_stock_price, get_profit_float, get_stock_closing_price
 
 def response_not_found_view(request, exception=None):
     return HttpResponseNotFound("Page not found", status=404)
@@ -35,7 +35,8 @@ def get_current_price(ticker: str):
     get_current_stock_price(ticker)
         
 
-def get_total_profit(ticker: str, start_date: str):
-    """Returns the daily performance of a stock. Start date should be
+def get_stock_profit(ticker: str, start_date: str):
+    """Returns the current profit (as a float) of a stock since a start date. Start date should be
     In the format year-month-day ex: '2025-06-23'"""
     # TODO use api to calculate this
+    return get_profit_float(ticker, start_date)
