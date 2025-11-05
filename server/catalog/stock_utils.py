@@ -10,7 +10,8 @@ load_dotenv()
 api_key = os.getenv("STOCK_API_KEY")
 
 def get_current_formatted_time():
-    """Grabs formatted time to use with the alphavantage stock api."""
+    """Grabs formatted time to use with the alphavantage stock api.
+    Gives yesterdays time since we don't have premium."""
     eastern = timezone('US/Eastern')
     
     # We don't have the premium version so we have to do one day behind
@@ -26,7 +27,7 @@ def get_current_formatted_time():
     return rounded_time.strftime('%Y-%m-%d %H:%M:%S')
 
 def get_stock_closing_price(ticker: str, date: str):
-    """Returns the closing performance of a stock. Start date must be in the format
+    """Returns the closing performance of a stock as a float. Start date must be in the format
     'year-month-day' with leading 0s as needed. ex: '2025-06-23'"""
     url = 'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=' + ticker + '&interval=5min&apikey=' + api_key
     # Replace "symbol=SYM" with whatever symbol you'd like to grab data from
@@ -34,10 +35,11 @@ def get_stock_closing_price(ticker: str, date: str):
     data = r.json()
 
     # Grab the float stock price and return it
-    return data['Time Series (Daily)'][date]['4. close']
+    return float(data['Time Series (Daily)'][date]['4. close'])
+
 
 def get_current_stock_price(ticker: str):
-    """Returns the current price of a stock within a 5 minute period."""
+    """Returns the current price of a stock as a float within a 5 minute period."""
     url = 'https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=' + ticker + '&interval=5min&apikey=' + api_key
     r = requests.get(url)
     data = r.json()
@@ -45,4 +47,24 @@ def get_current_stock_price(ticker: str):
     time = get_current_formatted_time()
     
     # Grab the float stock price and return it
-    return data['Time Series (5min)'][time]['4. close']
+    return float(data['Time Series (5min)'][time]['4. close'])
+
+
+def get_profit_float(ticker: str, start_date: str):
+    """Returns the profit of a stock as a float from a certain date to today."""
+    url = 'https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=' + ticker + '&interval=5min&apikey=' + api_key
+    r = requests.get(url)
+    data = r.json()
+    
+    url_start = 'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=' + ticker + '&interval=5min&apikey=' + api_key
+    r_start = requests.get(url_start)
+    data_start = r_start.json()
+    
+    time = get_current_formatted_time()
+    
+    # Grab value from both the start date AND today
+    current_price = data['Time Series (5min)'][time]['4. close']
+    start_price = data_start['Time Series (Daily)'][start_date]['4. close']
+    
+    total_profit = float(current_price) - float(start_price)
+    return total_profit
