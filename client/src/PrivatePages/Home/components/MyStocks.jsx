@@ -79,7 +79,7 @@ function MyStocks() {
       />
       <div className={styles.stockSummary}>
         <div className={styles.summaryItem}>
-          <span className={styles.summaryLabel}>Total Stocks Value:</span>
+          <span className={styles.summaryLabel}>Net Worth:</span>
           <span className={styles.summaryValue}>${totalValue.toFixed(2)}</span>
         </div>
         <div className={styles.summaryItem}>

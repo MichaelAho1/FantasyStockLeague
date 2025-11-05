@@ -82,9 +82,7 @@ class UserLeagueStocks(models.Model):
     league_participant = models.ForeignKey(LeagueParticipant, on_delete=models.CASCADE)
     stock = models.ForeignKey(Stock, on_delete=models.CASCADE)
  
-    #Used for calculating Profit (THIS CURRENTLY ISNT GOOD FOR WEEKLY PROFIT NEEDS TO BE CHANGED)
-    avg_price_per_share = models.DecimalField(decimal_places=2, default=0.00, max_digits=10) 
-    price_at_start_of_week = models.DecimalField(decimal_places=2, default=0.00, max_digits=10) 
+    price_at_start_of_week = models.DecimalField(decimal_places=2, default=0.00, max_digits=10)  # Resets Every Monday b4 market open
     shares = models.DecimalField(decimal_places=2, default=0.01, max_digits=10)
 
     def __str__(self):

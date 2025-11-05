@@ -3,7 +3,8 @@ from rest_framework import generics
 from api.serializer import StockSerializer
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from catalog.models import Stock, UserLeagueStocks
+from catalog.models import Stock, UserLeagueStocks, LeagueSetting
+from api.utils import getLeagueNetWorths, getOwnedStocks, getTotalStockValue
 
 
 class ViewAllStocks(generics.ListCreateAPIView):
@@ -27,10 +28,10 @@ class ViewAllOwnedStocks(generics.ListCreateAPIView):
     #serializer_class = UserLeagueStocksSerializer
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, format=None):
-        current_user = request.user
-        owned_stocks = (UserLeagueStocks.objects.filter(current_user))
+    def get(self, request, league_id, format=None):
+        owned_stocks = getOwnedStocks(league_id, request.user)
         stocks = []
+
         for stock in owned_stocks:
             data = {
                 "shares":stock.shares,
@@ -46,14 +47,23 @@ class ViewAllOwnedStocks(generics.ListCreateAPIView):
 class ViewAllStockWeeklyProfits(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, format=None):
-        current_user = request.user
-        owned_stocks = (UserLeagueStocks.objects.filter(current_user))
+    def get(self, request, league_id, format=None):
+        # Put this in a util function so i can call it in viewLeagueData to get all stock weekly profits (Then we can delete this API)
+        owned_stocks = getOwnedStocks(league_id, request.user)
         stocks = []
+
         for stock in owned_stocks:
-            #Calculate weekly profit here
+            weekly_profit = (stock.price_at_start_of_week - stock.stock.current_price) * stock.shares
             data = {
                 "ticker":stock.stock.ticker,
+                "weekly_profit":weekly_profit,
             }
             stocks.append(data)
         return Response(stocks)
+
+class ViewLeagueData(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, league_id, format=None): 
+        league_net_worth = getLeagueNetWorths(league_id, request.user)
+        
