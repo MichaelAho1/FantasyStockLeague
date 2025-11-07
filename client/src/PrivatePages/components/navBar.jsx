@@ -23,6 +23,9 @@ function navBar() {
         </div>
         <div className={styles.navbarRight}>
           <p className={styles.navbarItem}>
+            <Link to="/Private/Leagues">Leagues</Link>
+          </p>
+          <p className={styles.navbarItem}>
             <Link to="/Private/Home">Home</Link>
           </p>
           <p className={styles.navbarItem}>

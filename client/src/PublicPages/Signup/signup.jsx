@@ -57,7 +57,8 @@ function Signup() {
           const data = await loginResponse.json()
           localStorage.setItem('access_token', data.access)
           localStorage.setItem('refresh_token', data.refresh)
-          navigate('/Private/Home')
+          localStorage.setItem('username', username)
+          navigate('/Private/Leagues')
         } else {
           // Account created but auto-login failed, redirect to login
           navigate('/Login')

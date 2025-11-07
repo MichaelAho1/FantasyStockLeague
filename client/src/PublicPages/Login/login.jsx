@@ -31,7 +31,8 @@ function Login() {
         
         localStorage.setItem('access_token', data.access)
         localStorage.setItem('refresh_token', data.refresh)
-        navigate('/Private/Home')
+        localStorage.setItem('username', username)
+        navigate('/Private/Leagues')
       } else {
         const errorData = await response.json()
         setError(errorData.detail || 'Invalid username or password')
