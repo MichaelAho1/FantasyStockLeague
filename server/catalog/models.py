@@ -33,8 +33,6 @@ class League(models.Model):
     name = models.CharField(max_length=100, default="Trading League")
     start_date = models.DateField() # This will be selected by the user on creating a league
     end_date = models.DateField() # This should be autopopulated (8 weeks after start day)
-    initial_balance = models.DecimalField(max_digits=12, decimal_places=2, default=10000.00)
-    is_active = models.BooleanField(default=True)
     
     class Meta:
         ordering = ['-start_date']
@@ -69,13 +67,6 @@ class LeagueParticipant(models.Model):
     
     def __str__(self):
         return f"{self.user.username} in {self.league.name}"
-    
-    def save(self, *args, **kwargs):
-        # Set initial balance when first created
-        if not self.pk:
-            self.current_balance = self.league.initial_balance
-            self.total_value = self.league.initial_balance
-        super().save(*args, **kwargs)
 
 class UserLeagueStock(models.Model):
     """Links league participant to a stock"""

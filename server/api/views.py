@@ -1,3 +1,4 @@
+from datetime import timedelta
 from django.contrib.auth.models import User
 from rest_framework import generics
 from api.serializer import StockSerializer, UserSerializer
@@ -71,3 +72,17 @@ class ViewLeagueData(generics.ListCreateAPIView):
     def get(self, request, league_id, format=None): 
         league_net_worth = getLeagueNetWorths(league_id, request.user)
         
+class LeagueView(generics.CreateAPIView):
+    permission_classes = [IsAuthenticated]
+
+    # Creating a new league
+    #TODO FINISH THIS
+    def post(self, request, league_name, start_date, format=None):
+        end_date = start_date + timedelta(weeks=8)
+        league = League.objects.create(name=league_name, start_date=start_date, end_date=end_date)
+
+    # Viewing Data in a league
+    def get(self, request, league_id):
+        print("TEMP")
+
+
