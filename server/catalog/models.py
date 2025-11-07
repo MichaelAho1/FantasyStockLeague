@@ -27,7 +27,7 @@ class Stock(models.Model):
         return (self.current_price - self.start_price) * self.shares
     
     
-class LeagueSetting(models.Model):
+class League(models.Model):
     """Model representing the settings for the league"""
     league_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     name = models.CharField(max_length=100, default="Trading League")
@@ -58,7 +58,7 @@ class LeagueSetting(models.Model):
 
 class LeagueParticipant(models.Model):
     """Links users to leagues and tracks their performance"""
-    league = models.ForeignKey(LeagueSetting, on_delete=models.CASCADE, related_name='participants')
+    league = models.ForeignKey(League, on_delete=models.CASCADE, related_name='participants')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='league_participations')
     current_balance = models.DecimalField(max_digits=12, decimal_places=2)
     wins = models.CharField(max_length=100, blank=True, null=True)  
@@ -77,7 +77,7 @@ class LeagueParticipant(models.Model):
             self.total_value = self.league.initial_balance
         super().save(*args, **kwargs)
 
-class UserLeagueStocks(models.Model):
+class UserLeagueStock(models.Model):
     """Links league participant to a stock"""
     league_participant = models.ForeignKey(LeagueParticipant, on_delete=models.CASCADE)
     stock = models.ForeignKey(Stock, on_delete=models.CASCADE)
@@ -104,7 +104,7 @@ class UserLeagueStocks(models.Model):
 
 class Matchup(models.Model):
     """Model representing a matchup between two users in a league"""
-    league = models.ForeignKey(LeagueSetting, on_delete=models.CASCADE, related_name="matchups")
+    league = models.ForeignKey(League, on_delete=models.CASCADE, related_name="matchups")
     week_number = models.PositiveIntegerField()
     participant1 = models.ForeignKey(LeagueParticipant, on_delete=models.CASCADE, related_name="matchups_as_p1")
     participant2 = models.ForeignKey(LeagueParticipant, on_delete=models.CASCADE, related_name="matchups_as_p2")

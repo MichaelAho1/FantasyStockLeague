@@ -1,9 +1,9 @@
 from django.contrib import admin
 
-from .models import Stock, LeagueSetting, LeagueParticipant, UserLeagueStocks, Matchup
+from .models import Stock, League, LeagueParticipant, UserLeagueStock, Matchup
 
 admin.site.register(Stock)
-admin.site.register(LeagueSetting)
+admin.site.register(League)
 admin.site.register(LeagueParticipant)
-admin.site.register(UserLeagueStocks)
+admin.site.register(UserLeagueStock)
 admin.site.register(Matchup)

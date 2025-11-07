@@ -1,8 +1,8 @@
-from catalog.models import LeagueSetting, Stock, UserLeagueStocks, LeagueParticipant
+from catalog.models import League, Stock, UserLeagueStock, LeagueParticipant
 
 def getOwnedStocks(league_id, user):
-    current_league = LeagueSetting.objects.get(league_id=league_id)
-    return UserLeagueStocks.objects.filter(league_participant__user=user,league_participant__league=current_league)
+    current_league = League.objects.get(league_id=league_id)
+    return UserLeagueStock.objects.filter(league_participant__user=user,league_participant__league=current_league)
 
 def getTotalStockValue(league_id, user):
     owned_stocks = getOwnedStocks(league_id, user)
@@ -12,7 +12,7 @@ def getTotalStockValue(league_id, user):
     return total
 
 def getLeagueNetWorths(league_id, user):
-    current_league = LeagueSetting.objects.get(league_id=league_id)
+    current_league = League.objects.get(league_id=league_id)
     league_participants = LeagueParticipant.objects.get(League=current_league)
     netWorths = {}
     for league_participant in league_participants:

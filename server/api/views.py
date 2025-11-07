@@ -3,7 +3,7 @@ from rest_framework import generics
 from api.serializer import StockSerializer, UserSerializer
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from catalog.models import Stock, UserLeagueStocks, LeagueSetting
+from catalog.models import Stock, UserLeagueStock, League
 from api.utils import getLeagueNetWorths, getOwnedStocks, getTotalStockValue
 
 class CreateUserView(generics.CreateAPIView):
@@ -29,7 +29,7 @@ class ViewAllStocks(generics.ListCreateAPIView):
 
 
 class ViewAllOwnedStocks(generics.ListCreateAPIView):
-    #serializer_class = UserLeagueStocksSerializer
+    #serializer_class = UserLeagueStockSerializer
     permission_classes = [IsAuthenticated]
 
     def get(self, request, league_id, format=None):
