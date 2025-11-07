@@ -1,11 +1,15 @@
 from django.contrib.auth.models import User
 from rest_framework import generics
-from api.serializer import StockSerializer
+from api.serializer import StockSerializer, UserSerializer
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from catalog.models import Stock, UserLeagueStocks, LeagueSetting
 from api.utils import getLeagueNetWorths, getOwnedStocks, getTotalStockValue
 
+class CreateUserView(generics.CreateAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [AllowAny]
 
 class ViewAllStocks(generics.ListCreateAPIView):
     serializer_class = StockSerializer
