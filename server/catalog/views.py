@@ -32,7 +32,7 @@ def get_start_price(ticker: str, start_date: str):
         
 def get_current_price(ticker: str):
     """Returns the current price of a stock."""
-    get_current_stock_price(ticker)
+    return get_current_stock_price(ticker)
         
 
 def get_stock_profit(ticker: str, start_date: str):
