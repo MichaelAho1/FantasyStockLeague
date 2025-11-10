@@ -11,11 +11,16 @@ def getTotalStockValue(league_id, user):
         total += stock.shares * stock.stock.current_price
     return total
 
-def getLeagueNetWorths(league_id, user):
-    current_league = League.objects.get(league_id=league_id)
-    league_participants = LeagueParticipant.objects.get(League=current_league)
-    netWorths = {}
-    for league_participant in league_participants:
-        netWorths[league_participant] = getTotalStockValue(league_id, user) + league_participant.current_balance
+def getUserWeeklyStockProfits(league_id, user):
+    owned_stocks = getOwnedStocks(league_id, user)
+    stocks = []
 
-    return netWorths
+    for stock in owned_stocks:
+        weekly_profit = (stock.price_at_start_of_week - stock.stock.current_price) * stock.shares
+        data = {
+            "ticker": stock.stock.ticker,
+            "weekly_profit": weekly_profit,
+        }
+        stocks.append(data)
+
+    return stocks
