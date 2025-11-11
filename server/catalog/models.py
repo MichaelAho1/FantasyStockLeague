@@ -46,7 +46,8 @@ class League(models.Model):
 
     def create_matchups(self):
         """Create matchups for the league"""
-        #TODO
+        from catalog.views import create_league_schedule
+        return create_league_schedule(self)
 
     @property
     def is_ongoing(self):

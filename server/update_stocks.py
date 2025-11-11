@@ -15,7 +15,7 @@ from catalog.stock_populator import update_stock_prices
 
 def update_stocks():
     """Grabs stocks from database and updates them. Updates on 5 minute intervals.
-    Returns True if updated and false if not."""
+    Returns True if updated and false if not. This should be used every time the page is loaded."""
     
     # Grab the stock's last updated time and see if it needs to be changed
     current_datetime = datetime.now()
