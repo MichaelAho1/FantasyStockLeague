@@ -1,3 +1,6 @@
+from datetime import date
+
+from django.db import models
 from catalog.models import League, Stock, UserLeagueStock, LeagueParticipant
 
 def getOwnedStocks(league_id, user):
@@ -24,3 +27,25 @@ def getUserWeeklyStockProfits(league_id, user):
         stocks.append(data)
 
     return stocks
+
+def getCurrentOpponent(league_id, user):
+    current_league = League.objects.get(league_id=league_id)
+    today = date.today()
+    week_number = (today - current_league.start_date).days // 7 + 1
+    participant = LeagueParticipant.objects.get(league=current_league, user=user)
+
+    # Now find matchup where this participant is either participant1 or participant2
+    from catalog.models import Matchup
+    matchup = Matchup.objects.filter(
+        league=current_league,
+        week_number=week_number
+    ).filter(
+        (models.Q(participant1=participant) | models.Q(participant2=participant))
+    ).first()
+
+    if matchup.participant1 == participant:
+        opponent = matchup.participant2
+    else:
+        opponent = matchup.participant1
+
+    return opponent

@@ -5,7 +5,7 @@ from api.serializer import StockSerializer, UserSerializer
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from catalog.models import LeagueParticipant, Stock, UserLeagueStock, League
-from api.utils import getUserWeeklyStockProfits, getOwnedStocks, getTotalStockValue
+from api.utils import getCurrentOpponent, getUserWeeklyStockProfits, getOwnedStocks, getTotalStockValue
 
 class CreateUserView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -48,7 +48,6 @@ class ViewAllOwnedStocks(generics.ListCreateAPIView):
             stocks.append(data)
         return Response(stocks)
 
-#TODO We somehow need to also get the opponents weekly profits
 class ViewUserWeeklyProfits(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
@@ -56,22 +55,20 @@ class ViewUserWeeklyProfits(generics.ListCreateAPIView):
         stocks = getUserWeeklyStockProfits(league_id, request.user)
         return Response(stocks)
 
-class ViewAllLeagues(generics.ListCreateAPIView):
+class ViewOpponentWeeklyProfits(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
-    
-    def get(self, request):
-        #if a user is a superuser then get all leagues
-        #if a user is normal then get all leagues there in and there permissions
-        print("temp")
+
+    def get(self, request, league_id, format=None):
+        stocks = getUserWeeklyStockProfits(league_id, getCurrentOpponent(league_id, request.user))
+        return Response(stocks)
         
 class LeagueView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
     # Creating a new league
-    #TODO FINISH THIS
     def post(self, request, league_name, start_date, format=None):
-        end_date = start_date + timedelta(weeks=8)
-        league = League.objects.create(name=league_name, start_date=start_date, end_date=end_date)
+        end_date = start_date + timedelta(weeks=7)
+        League.objects.create(name=league_name, start_date=start_date, end_date=end_date)
 
     # Viewing Data in a league
     def get(self, request, league_id):
@@ -92,5 +89,15 @@ class LeagueView(generics.ListCreateAPIView):
             }
             leagueUserData.append(data)
         return Response(leagueUserData)
+
+class ViewAllLeagues(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        #if a user is a superuser then get all leagues
+        #if a user is normal then get all leagues there in and there permissions
+        print("temp")
+# Buy stocks
+# Sell stocks
 
 
