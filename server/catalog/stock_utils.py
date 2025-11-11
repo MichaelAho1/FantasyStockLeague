@@ -46,8 +46,15 @@ def get_current_stock_price(ticker: str):
     
     time = get_current_formatted_time()
     
-    # Grab the float stock price and return it
-    return float(data['Time Series (5min)'][time]['4. close'])
+     # Try to get the exact time, if not available, get the most recent
+    time_series = data['Time Series (5min)']
+    
+    if time in time_series:
+        return float(time_series[time]['4. close'])
+    else:
+        # Get the most recent available timestamp
+        latest_time = sorted(time_series.keys(), reverse=True)[0]
+        return float(time_series[latest_time]['4. close'])
 
 
 def get_profit_float(ticker: str, start_date: str):

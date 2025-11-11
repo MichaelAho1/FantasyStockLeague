@@ -40,3 +40,8 @@ def get_stock_profit(ticker: str, start_date: str):
     In the format year-month-day ex: '2025-06-23'"""
     # TODO use api to calculate this
     return get_profit_float(ticker, start_date)
+
+
+def scheduler():
+    # Create the league schedule
+    pass

@@ -21,7 +21,7 @@ def create_new_stock(ticker: str, name: str, start_date: str):
     return stock
 
 
-def update_stock_price(stock_list):
+def update_stock_prices(stock_list):
     """Call current price on all stocks and return the updated list."""
     for stock in stock_list:
         stock.current_price = get_current_price(stock.ticker)
