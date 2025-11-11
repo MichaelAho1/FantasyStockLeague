@@ -4,8 +4,8 @@ from rest_framework import generics
 from api.serializer import StockSerializer, UserSerializer
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from catalog.models import Stock, UserLeagueStock, League
-from api.utils import getLeagueNetWorths, getOwnedStocks, getTotalStockValue
+from catalog.models import LeagueParticipant, Stock, UserLeagueStock, League
+from api.utils import getCurrentOpponent, getUserWeeklyStockProfits, getOwnedStocks, getTotalStockValue
 
 class CreateUserView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -48,41 +48,56 @@ class ViewAllOwnedStocks(generics.ListCreateAPIView):
             stocks.append(data)
         return Response(stocks)
 
-
-class ViewAllStockWeeklyProfits(generics.ListCreateAPIView):
+class ViewUserWeeklyProfits(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, league_id, format=None):
-        # Put this in a util function so i can call it in viewLeagueData to get all stock weekly profits (Then we can delete this API)
-        owned_stocks = getOwnedStocks(league_id, request.user)
-        stocks = []
-
-        for stock in owned_stocks:
-            weekly_profit = (stock.price_at_start_of_week - stock.stock.current_price) * stock.shares
-            data = {
-                "ticker":stock.stock.ticker,
-                "weekly_profit":weekly_profit,
-            }
-            stocks.append(data)
+        stocks = getUserWeeklyStockProfits(league_id, request.user)
         return Response(stocks)
 
-class ViewLeagueData(generics.ListCreateAPIView):
+class ViewOpponentWeeklyProfits(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, league_id, format=None): 
-        league_net_worth = getLeagueNetWorths(league_id, request.user)
+    def get(self, request, league_id, format=None):
+        stocks = getUserWeeklyStockProfits(league_id, getCurrentOpponent(league_id, request.user))
+        return Response(stocks)
         
-class LeagueView(generics.CreateAPIView):
+class LeagueView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
     # Creating a new league
-    #TODO FINISH THIS
     def post(self, request, league_name, start_date, format=None):
-        end_date = start_date + timedelta(weeks=8)
-        league = League.objects.create(name=league_name, start_date=start_date, end_date=end_date)
+        end_date = start_date + timedelta(weeks=7)
+        League.objects.create(name=league_name, start_date=start_date, end_date=end_date)
 
     # Viewing Data in a league
     def get(self, request, league_id):
-        print("TEMP")
+        current_league = League.objects.get(league_id=league_id)
+        league_participants = LeagueParticipant.objects.get(League=current_league)
+        leagueUserData = []
+        for league_participant in league_participants:
+            total_profit = 0
+            for stock in getOwnedStocks(league_id, league_participant.user):
+                total_profit += (stock.price_at_start_of_week - stock.stock.current_price) * stock.shares
+            data = {
+                "user":league_participant.user,
+                "wins":league_participant.wins,
+                "losses":league_participant.losses,
+                "net_worth": getTotalStockValue(league_id, league_participant.user) + league_participant.current_balance,
+                "weekly_profit": total_profit,
+                # Still needs schedule
+            }
+            leagueUserData.append(data)
+        return Response(leagueUserData)
+
+class ViewAllLeagues(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        #if a user is a superuser then get all leagues
+        #if a user is normal then get all leagues there in and there permissions
+        print("temp")
+# Buy stocks
+# Sell stocks
 
 

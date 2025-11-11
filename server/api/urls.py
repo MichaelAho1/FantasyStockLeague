@@ -6,4 +6,6 @@ from rest_framework_simplejwt import views as jwt_views
 urlpatterns = [
     path('stocks/', views.ViewAllStocks.as_view(), name="viewAllStocks"),
     path('owned-stocks/<uuid:league_id>/', views.ViewAllOwnedStocks.as_view(), name="viewAllOwnedStocks"),
+    path('weekly-profits/<uuid:league_id>/', views.ViewUserWeeklyProfits.as_view(), name="ViewUserWeeklyProfits"),
+    path('opponent-weekly-profits/<uuid:league_id>/', views.ViewOpponentWeeklyProfits.as_view(), name="ViewOpponentWeeklyProfits"),
 ]
