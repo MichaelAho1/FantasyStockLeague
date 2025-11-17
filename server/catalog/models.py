@@ -31,8 +31,8 @@ class League(models.Model):
     """Model representing the settings for the league"""
     league_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     name = models.CharField(max_length=100, default="Trading League")
-    start_date = models.DateField() # This will be selected by the user on creating a league
-    end_date = models.DateField() # This should be autopopulated (8 weeks after start day)
+    start_date = models.DateField(null=True, blank=True) # Set once 8 participants join
+    end_date = models.DateField(null=True, blank=True) # Autopopulated (8 weeks after start day)
     
     class Meta:
         ordering = ['-start_date']
@@ -41,7 +41,7 @@ class League(models.Model):
         return f"{self.name} ({self.league_id})"
     
     def clean(self):
-        if self.end_date <= self.start_date:
+        if self.start_date and self.end_date and self.end_date <= self.start_date:
             raise ValidationError("End date must be after start date")
 
     def create_matchups(self):
@@ -51,8 +51,19 @@ class League(models.Model):
 
     @property
     def is_ongoing(self):
+        if not self.start_date or not self.end_date:
+            return False
         today = timezone.now().date()
         return self.start_date <= today <= self.end_date
+    
+    @property
+    def participant_count(self):
+        """Get the number of participants in the league"""
+        return self.participants.count()
+    
+    def can_set_start_date(self):
+        """Check if league has 8 participants and can set start date"""
+        return self.participant_count >= 8
 
 
 class LeagueParticipant(models.Model):

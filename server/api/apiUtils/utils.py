@@ -8,11 +8,12 @@ def getOwnedStocks(league_id, user):
     return UserLeagueStock.objects.filter(league_participant__user=user,league_participant__league=current_league)
 
 def getTotalStockValue(league_id, user):
+    from decimal import Decimal
     owned_stocks = getOwnedStocks(league_id, user)
-    total = 0
+    total = Decimal('0.00')
     for stock in owned_stocks:
-        total += stock.shares * stock.stock.current_price
-    return total
+        total += Decimal(str(stock.shares)) * Decimal(str(stock.stock.current_price))
+    return float(total)
 
 def getUserWeeklyStockProfits(league_id, user):
     owned_stocks = getOwnedStocks(league_id, user)

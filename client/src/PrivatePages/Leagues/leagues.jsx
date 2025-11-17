@@ -11,6 +11,8 @@ function Leagues() {
   const [isSuperuser, setIsSuperuser] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showJoinModal, setShowJoinModal] = useState(false)
+  const [showSetStartDateModal, setShowSetStartDateModal] = useState(false)
+  const [selectedLeagueForStartDate, setSelectedLeagueForStartDate] = useState(null)
   const [leagueName, setLeagueName] = useState('')
   const [startDate, setStartDate] = useState('')
   const [joinLeagueId, setJoinLeagueId] = useState('')
@@ -77,10 +79,7 @@ function Leagues() {
       return
     }
 
-    if (!startDate) {
-      setError('Start date is required')
-      return
-    }
+    // Start date is no longer required - will be set when 8 players join
 
     try {
       const response = await fetch('http://localhost:8000/api/leagues/', {
@@ -91,14 +90,12 @@ function Leagues() {
         },
         body: JSON.stringify({
           name: leagueName,
-          start_date: startDate,
         }),
       })
 
       if (response.ok) {
         setShowCreateModal(false)
         setLeagueName('')
-        setStartDate('')
         setError('')
         fetchLeagues() // Refresh leagues list
       } else {
@@ -171,13 +168,60 @@ function Leagues() {
   }
 
   // Handle league click - navigate to home with selected league
-  const handleLeagueClick = (leagueId, isParticipant) => {
+  const handleLeagueClick = (leagueId, isParticipant, participantCount, event) => {
+    // Prevent navigation if clicking on set start date button
+    if (event && event.target.closest('.setStartDateButton')) {
+      return
+    }
+    
     // Superusers can only select leagues they are participants in
     if (isSuperuser && !isParticipant) {
       return // Don't allow navigation for non-participant leagues
     }
+    
+    // Prevent selection if league doesn't have all 8 participants
+    if (participantCount < 8) {
+      return // Don't allow navigation for leagues that don't have all participants
+    }
+    
     localStorage.setItem('selected_league_id', leagueId)
     navigate('/Private/Home')
+  }
+
+  // Handle set start date
+  const handleSetStartDate = async (e) => {
+    e.preventDefault()
+    if (!selectedLeagueForStartDate || !startDate) {
+      setError('Please select a start date')
+      return
+    }
+
+    const token = localStorage.getItem('access_token')
+    try {
+      const response = await fetch(`http://localhost:8000/api/leagues/${selectedLeagueForStartDate}/set-start-date/`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          start_date: startDate,
+        }),
+      })
+
+      if (response.ok) {
+        setShowSetStartDateModal(false)
+        setSelectedLeagueForStartDate(null)
+        setStartDate('')
+        setError('')
+        fetchLeagues() // Refresh leagues list
+      } else {
+        const errorData = await response.json()
+        setError(errorData.error || 'Failed to set start date')
+      }
+    } catch (err) {
+      setError('Network error. Please try again.')
+    }
   }
 
   return (
@@ -236,14 +280,21 @@ function Leagues() {
                   const leagueId = league.league_id
                   const isAdmin = leagueItem.leagueAdmin !== undefined ? leagueItem.leagueAdmin : false
                   const isParticipant = leagueItem.isParticipant !== undefined ? leagueItem.isParticipant : true
+                  const participantCount = league.participant_count || 0
+                  const canSetStartDate = league.can_set_start_date || false
                   
                   if (!leagueId) {
                     console.error('League missing league_id:', league)
                     return null
                   }
                   
+                  // Check if league has all participants (8)
+                  const hasAllParticipants = participantCount >= 8
+                  const isNotFull = participantCount < 8
+                  
                   // For superusers, disable clicking if not a participant
-                  const isClickable = !isSuperuser || isParticipant
+                  // Also disable if league doesn't have all 8 participants
+                  const isClickable = (!isSuperuser || isParticipant) && hasAllParticipants
                   const cardStyle = isClickable ? {} : { opacity: 0.6, cursor: 'not-allowed' }
                   
                   return (
@@ -251,26 +302,57 @@ function Leagues() {
                       key={leagueId}
                       className={styles.leagueCard}
                       style={cardStyle}
-                      onClick={() => handleLeagueClick(leagueId, isParticipant)}
+                      onClick={(e) => handleLeagueClick(leagueId, isParticipant, participantCount, e)}
                     >
                       <h3 className={styles.leagueName}>
                         {league.name}
                         {isAdmin && <span className={styles.adminBadge}>Admin</span>}
                         {isSuperuser && !isParticipant && <span className={styles.viewOnlyBadge}>View Only</span>}
+                        {isNotFull && <span className={styles.viewOnlyBadge}>Not Ready</span>}
                       </h3>
                       <div className={styles.leagueInfo}>
                         <p className={styles.leagueDetail}>
-                          <span className={styles.label}>Start Date:</span> {new Date(league.start_date).toLocaleDateString()}
+                          <span className={styles.label}>Participants:</span> {participantCount}/8
+                          {isNotFull && <span style={{ color: '#f59e0b', marginLeft: '8px' }}>(Waiting for more players)</span>}
                         </p>
-                        <p className={styles.leagueDetail}>
-                          <span className={styles.label}>End Date:</span> {new Date(league.end_date).toLocaleDateString()}
-                        </p>
+                        {league.start_date ? (
+                          <>
+                            <p className={styles.leagueDetail}>
+                              <span className={styles.label}>Start Date:</span> {new Date(league.start_date).toLocaleDateString()}
+                            </p>
+                            <p className={styles.leagueDetail}>
+                              <span className={styles.label}>End Date:</span> {new Date(league.end_date).toLocaleDateString()}
+                            </p>
+                          </>
+                        ) : (
+                          <p className={styles.leagueDetail} style={{ color: '#6b7280', fontStyle: 'italic' }}>
+                            Start date not set - waiting for 8 players
+                          </p>
+                        )}
                         <p className={styles.leagueDetail}>
                           <span className={styles.label}>League ID:</span> {leagueId}
                         </p>
+                        {isAdmin && canSetStartDate && !league.start_date && (
+                          <button
+                            className={`${styles.setStartDateButton} setStartDateButton`}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setSelectedLeagueForStartDate(leagueId)
+                              setShowSetStartDateModal(true)
+                              setError('')
+                            }}
+                          >
+                            Set Start Date
+                          </button>
+                        )}
                         {isSuperuser && !isParticipant && (
                           <p className={styles.leagueDetail} style={{ color: '#6b7280', fontStyle: 'italic' }}>
                             You are not a participant in this league
+                          </p>
+                        )}
+                        {isNotFull && (
+                          <p className={styles.leagueDetail} style={{ color: '#f59e0b', fontStyle: 'italic' }}>
+                            This league needs 8 participants before it can be selected
                           </p>
                         )}
                       </div>
@@ -300,15 +382,8 @@ function Leagues() {
                   required
                 />
               </div>
-              <div className={styles.formGroup}>
-                <label htmlFor="startDate">Start Date</label>
-                <input
-                  type="date"
-                  id="startDate"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  required
-                />
+              <div className={styles.infoMessage}>
+                <p>Note: Start date will be set once 8 players join the league.</p>
               </div>
               <div className={styles.modalActions}>
                 <button type="button" className={styles.cancelButton} onClick={() => setShowCreateModal(false)}>
@@ -346,6 +421,42 @@ function Leagues() {
                 </button>
                 <button type="submit" className={styles.submitButton}>
                   Join League
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Set Start Date Modal */}
+      {showSetStartDateModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowSetStartDateModal(false)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <h2>Set League Start Date</h2>
+            <p style={{ color: '#6b7280', marginBottom: '20px' }}>
+              This league has 8 participants. Set the start date to begin the league.
+            </p>
+            <form onSubmit={handleSetStartDate}>
+              <div className={styles.formGroup}>
+                <label htmlFor="setStartDate">Start Date</label>
+                <input
+                  type="date"
+                  id="setStartDate"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  required
+                />
+              </div>
+              <div className={styles.modalActions}>
+                <button type="button" className={styles.cancelButton} onClick={() => {
+                  setShowSetStartDateModal(false)
+                  setSelectedLeagueForStartDate(null)
+                  setStartDate('')
+                }}>
+                  Cancel
+                </button>
+                <button type="submit" className={styles.submitButton}>
+                  Set Start Date
                 </button>
               </div>
             </form>

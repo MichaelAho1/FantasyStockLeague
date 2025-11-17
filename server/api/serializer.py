@@ -19,12 +19,22 @@ class StockSerializer(serializers.ModelSerializer):
         fields = ["ticker", "name", "start_price", "current_price"]
 
 class LeaguesSerializer(serializers.ModelSerializer):
+    participant_count = serializers.SerializerMethodField()
+    can_set_start_date = serializers.SerializerMethodField()
+    
     class Meta:
         model = League
-        fields = ['league_id', 'name', 'start_date', 'end_date']
-        read_only_fields = ['league_id', 'end_date']
+        fields = ['league_id', 'name', 'start_date', 'end_date', 'participant_count', 'can_set_start_date']
+        read_only_fields = ['league_id', 'end_date', 'participant_count', 'can_set_start_date']
+    
+    def get_participant_count(self, obj):
+        return obj.participant_count
+    
+    def get_can_set_start_date(self, obj):
+        return obj.can_set_start_date()
     
     def create(self, validated_data):
-        start_date = validated_data["start_date"]
-        validated_data["end_date"] = start_date + timedelta(weeks=7)
+        # Remove start_date from validated_data if provided (will be set later)
+        validated_data.pop('start_date', None)
+        validated_data.pop('end_date', None)
         return super().create(validated_data)

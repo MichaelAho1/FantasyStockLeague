@@ -49,6 +49,9 @@ def join_league(league_id, user):
             leagueAdmin=False
         )
         
+        # Check if league now has 8 participants and can set start date
+        # (Start date will be set by admin when ready, not automatically)
+        
         # Serialize league data for response
         serializer = LeaguesSerializer(league)
         return True, {

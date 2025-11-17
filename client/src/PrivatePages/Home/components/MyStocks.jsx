@@ -6,6 +6,8 @@ function MyStocks() {
   const [stocks, setStocks] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [currentBalance, setCurrentBalance] = useState(0)
+  const [netWorth, setNetWorth] = useState(0)
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 9
 
@@ -37,15 +39,28 @@ function MyStocks() {
 
       if (response.ok) {
         const data = await response.json()
-        // Transform data to match component format
-        const transformedStocks = data.map(stock => ({
+        // Handle both old format (array) and new format (object with stocks array)
+        const stocksData = data.stocks || data
+        const transformedStocks = stocksData.map(stock => ({
           ticker: stock.ticker,
           name: stock.name,
           startPrice: parseFloat(stock.start_price) || 0,
           currentPrice: parseFloat(stock.current_price) || 0,
+          priceAtStartOfWeek: parseFloat(stock.price_at_start_of_week) || 0,
           shares: parseFloat(stock.shares) || 0
         }))
         setStocks(transformedStocks)
+        
+        // Set balance and net worth if available
+        if (data.current_balance !== undefined) {
+          setCurrentBalance(data.current_balance || 0)
+        }
+        if (data.net_worth !== undefined) {
+          setNetWorth(data.net_worth || 0)
+        } else if (data.total_stock_value !== undefined && data.current_balance !== undefined) {
+          setNetWorth((data.total_stock_value || 0) + (data.current_balance || 0))
+        }
+        
         setError('')
       } else {
         setError('Failed to load stocks')
@@ -61,9 +76,17 @@ function MyStocks() {
   }
 
   // Calculate totals
-  const totalValue = stocks.reduce((sum, stock) => sum + (stock.currentPrice * stock.shares), 0)
-  const totalStartValue = stocks.reduce((sum, stock) => sum + (stock.startPrice * stock.shares), 0)
-  const totalProfit = totalValue - totalStartValue
+  const totalStockValue = stocks.reduce((sum, stock) => sum + (stock.currentPrice * stock.shares), 0)
+  // Calculate weekly profit using price_at_start_of_week
+  const totalWeeklyProfit = stocks.reduce((sum, stock) => {
+    if (stock.priceAtStartOfWeek > 0) {
+      return sum + ((stock.currentPrice - stock.priceAtStartOfWeek) * stock.shares)
+    }
+    return sum
+  }, 0)
+  
+  // Net worth = stock value + current balance
+  const calculatedNetWorth = netWorth > 0 ? netWorth : (totalStockValue + currentBalance)
 
   // Calculate pagination
   const totalPages = Math.ceil(stocks.length / itemsPerPage)
@@ -94,24 +117,35 @@ function MyStocks() {
             <div className={styles.tableHeader}>
               <div>Ticker</div>
               <div>Stock Name</div>
-              <div>Day Start Price</div>
+              <div>Week Start Price</div>
               <div>Current Price</div>
-              <div>Daily Price Change</div>
+              <div>Weekly Profit</div>
               <div>Shares</div>
             </div>
             <div className={styles.stockTableBody}>
               {currentStocks.map((stock, index) => {
-                const profit = (stock.currentPrice - stock.startPrice) * stock.shares
-                const profitPercent = stock.startPrice !== 0 ? ((stock.currentPrice - stock.startPrice) / stock.startPrice) * 100 : 0
+                // Calculate weekly profit using price_at_start_of_week
+                const weeklyProfit = stock.priceAtStartOfWeek > 0 
+                  ? (stock.currentPrice - stock.priceAtStartOfWeek) * stock.shares
+                  : 0
+                const profitPercent = stock.priceAtStartOfWeek > 0 
+                  ? ((stock.currentPrice - stock.priceAtStartOfWeek) / stock.priceAtStartOfWeek) * 100 
+                  : 0
                 
                 return (
                   <div key={index} className={styles.stockRow}>
                     <div className={styles.ticker}>{stock.ticker}</div>
                     <div className={styles.stockName}>{stock.name}</div>
-                    <div className={styles.startPrice}>${stock.startPrice.toFixed(2)}</div>
+                    <div className={styles.startPrice}>
+                      {stock.priceAtStartOfWeek > 0 ? `$${stock.priceAtStartOfWeek.toFixed(2)}` : 'N/A'}
+                    </div>
                     <div className={styles.currentPrice}>${stock.currentPrice.toFixed(2)}</div>
-                    <div className={`${styles.profit} ${profit >= 0 ? styles.profitPositive : styles.profitNegative}`}>
-                      ${profit.toFixed(2)} ({profitPercent.toFixed(1)}%)
+                    <div className={`${styles.profit} ${weeklyProfit >= 0 ? styles.profitPositive : styles.profitNegative}`}>
+                      {stock.priceAtStartOfWeek > 0 ? (
+                        <>${weeklyProfit.toFixed(2)} ({profitPercent.toFixed(1)}%)</>
+                      ) : (
+                        <>N/A</>
+                      )}
                     </div>
                     <div className={styles.shares}>{stock.shares.toFixed(2)}</div>
                   </div>
@@ -128,13 +162,21 @@ function MyStocks() {
           )}
           <div className={styles.stockSummary}>
             <div className={styles.summaryItem}>
+              <span className={styles.summaryLabel}>Current Balance:</span>
+              <span className={styles.summaryValue}>${currentBalance.toFixed(2)}</span>
+            </div>
+            <div className={styles.summaryItem}>
+              <span className={styles.summaryLabel}>Stock Value:</span>
+              <span className={styles.summaryValue}>${totalStockValue.toFixed(2)}</span>
+            </div>
+            <div className={styles.summaryItem}>
               <span className={styles.summaryLabel}>Net Worth:</span>
-              <span className={styles.summaryValue}>${totalValue.toFixed(2)}</span>
+              <span className={styles.summaryValue}>${calculatedNetWorth.toFixed(2)}</span>
             </div>
             <div className={styles.summaryItem}>
               <span className={styles.summaryLabel}>Total Weekly Profit:</span>
-              <span className={`${styles.summaryValue} ${totalProfit >= 0 ? styles.profitPositive : styles.profitNegative}`}>
-                {totalProfit >= 0 ? '+' : ''}${totalProfit.toFixed(2)}
+              <span className={`${styles.summaryValue} ${totalWeeklyProfit >= 0 ? styles.profitPositive : styles.profitNegative}`}>
+                {totalWeeklyProfit >= 0 ? '+' : ''}${totalWeeklyProfit.toFixed(2)}
               </span>
             </div>
           </div>

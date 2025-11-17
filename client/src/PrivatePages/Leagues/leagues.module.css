@@ -297,6 +297,37 @@
   margin-top: 32px;
 }
 
+.infoMessage {
+  background-color: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 20px;
+}
+
+.infoMessage p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.setStartDateButton {
+  margin-top: 12px;
+  padding: 10px 20px;
+  background-color: #6366f1;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.setStartDateButton:hover {
+  background-color: #4f46e5;
+}
+
 .cancelButton,
 .submitButton {
   padding: 12px 24px;
