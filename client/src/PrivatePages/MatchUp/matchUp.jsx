@@ -1,64 +1,131 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import NavBar from "../components/navBar.jsx"
 import TeamCard from "./components/TeamCard.jsx"
 import styles from "./matchUp.module.css"
 
 function MatchUp() {
-  const [matchup] = useState({
-    player1: {
-      name: "Team #5",
-      value: 125000,
-      profit: 11500,
-      record: "8-2",
-      stocks: [
-        { ticker: 'AAPL', profit: 5500 },
-        { ticker: 'GOOGL', profit: 3200 },
-        { ticker: 'MSFT', profit: 2800 },
-        { ticker: 'TSLA', profit: 4200 },
-        { ticker: 'NVDA', profit: 3800 },
-        { ticker: 'META', profit: 2900 },
-        { ticker: 'AMZN', profit: 2100 },
-        { ticker: 'NFLX', profit: 1800 },
-        { ticker: 'DIS', profit: 1200 },
-        { ticker: 'UBER', profit: 800 },
-        { ticker: 'SPOT', profit: 650 },
-        { ticker: 'SQ', profit: 420 },
-        { ticker: 'PYPL', profit: 380 },
-        { ticker: 'ADBE', profit: 290 },
-        { ticker: 'CRM', profit: 150 }
-      ]
-    },
-    player2: {
-      name: "Team #6", 
-      value: 132000,
-      profit: 12000,
-      record: "9-1",
-      stocks: [
-        { ticker: 'TSLA', profit: 4500 },
-        { ticker: 'NVDA', profit: 3800 },
-        { ticker: 'META', profit: 3700 },
-        { ticker: 'AAPL', profit: 3200 },
-        { ticker: 'GOOGL', profit: 2800 },
-        { ticker: 'MSFT', profit: 2500 },
-        { ticker: 'AMZN', profit: 2200 },
-        { ticker: 'NFLX', profit: 1900 },
-        { ticker: 'DIS', profit: 1500 },
-        { ticker: 'UBER', profit: 900 },
-        { ticker: 'SPOT', profit: 750 },
-        { ticker: 'SQ', profit: 580 },
-        { ticker: 'PYPL', profit: 450 },
-        { ticker: 'ADBE', profit: 320 },
-        { ticker: 'CRM', profit: 200 }
-      ]
+  const [matchup, setMatchup] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [weekNumber, setWeekNumber] = useState(null)
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    fetchMatchup()
+  }, [])
+
+  const fetchMatchup = async () => {
+    const leagueId = localStorage.getItem('selected_league_id')
+    if (!leagueId) {
+      setError('Please select a league first')
+      setLoading(false)
+      navigate('/Private/Leagues')
+      return
     }
-  })
+
+    const token = localStorage.getItem('access_token')
+    if (!token) {
+      setError('Please log in')
+      setLoading(false)
+      navigate('/Login')
+      return
+    }
+
+    try {
+      const response = await fetch(`http://localhost:8000/api/leagues/${leagueId}/matchup/`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setMatchup(data)
+        setWeekNumber(data.week_number)
+        setError('')
+      } else if (response.status === 401) {
+        setError('Your session has expired. Please log in again.')
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('selected_league_id')
+        window.location.href = '/Login'
+      } else {
+        const errorData = await response.json().catch(() => ({}))
+        if (errorData.error === 'You are not a participant in this league') {
+          setError('Matchup not available - you are not a participant in this league')
+        } else if (errorData.error === 'League not found') {
+          setError('League not found')
+        } else if (errorData.error === 'League has not started yet') {
+          setError('League has not started yet')
+        } else if (errorData.error === 'No matchup found for current week') {
+          setError('No matchup found for current week')
+        } else {
+          setError(errorData.error || errorData.detail || 'Failed to load matchup')
+        }
+        setMatchup(null)
+      }
+    } catch (err) {
+      console.error('Error fetching matchup:', err)
+      setError('Network error. Please try again.')
+      setMatchup(null)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <>
+        <NavBar />
+        <div className={styles.matchUpContainer}>
+          <div className={styles.matchupHeader}>
+            <h1>Loading matchup...</h1>
+          </div>
+        </div>
+      </>
+    )
+  }
+
+  if (error) {
+    return (
+      <>
+        <NavBar />
+        <div className={styles.matchUpContainer}>
+          <div className={styles.matchupHeader}>
+            <h1>Matchup</h1>
+          </div>
+          <div style={{ textAlign: 'center', padding: '40px', color: '#ef4444' }}>
+            <p>{error}</p>
+          </div>
+        </div>
+      </>
+    )
+  }
+
+  if (!matchup || !matchup.player1 || !matchup.player2) {
+    return (
+      <>
+        <NavBar />
+        <div className={styles.matchUpContainer}>
+          <div className={styles.matchupHeader}>
+            <h1>Matchup</h1>
+          </div>
+          <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
+            <p>No matchup data available</p>
+          </div>
+        </div>
+      </>
+    )
+  }
 
   return (
     <>
         <NavBar></NavBar>
         <div className={styles.matchUpContainer}>
             <div className={styles.matchupHeader}>
-                <h1>Week 2</h1>
+                <h1>Week {weekNumber || 'N/A'}</h1>
             </div>
             
             <div className={styles.teamsContainer}>

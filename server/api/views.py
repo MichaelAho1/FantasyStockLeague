@@ -248,3 +248,37 @@ class SetLeagueStartDateView(generics.UpdateAPIView):
             print(traceback.format_exc())
             return Response({'error': f'An error occurred: {str(e)}'}, status=500)
 
+
+class GetCurrentMatchupView(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, league_id, format=None):
+        """Get the current matchup for the user in a specific league"""
+        try:
+            from api.apiUtils.matchupUtils import get_current_matchup_data
+            
+            league = League.objects.get(league_id=league_id)
+            
+            # Verify user is a participant
+            try:
+                user_participant = LeagueParticipant.objects.get(league=league, user=request.user)
+            except LeagueParticipant.DoesNotExist:
+                return Response({'error': 'You are not a participant in this league'}, status=404)
+            
+            matchup_data = get_current_matchup_data(league, league_id, request.user)
+            
+            # Check if there's an error in the response
+            if 'error' in matchup_data:
+                status_code = 400 if 'not started' in matchup_data['error'] or 'No matchup' in matchup_data['error'] else 404
+                return Response(matchup_data, status=status_code)
+            
+            return Response(matchup_data, status=200)
+            
+        except League.DoesNotExist:
+            return Response({'error': 'League not found'}, status=404)
+        except Exception as e:
+            import traceback
+            print(f"Error getting current matchup: {str(e)}")
+            print(traceback.format_exc())
+            return Response({'error': f'An error occurred: {str(e)}'}, status=500)
+

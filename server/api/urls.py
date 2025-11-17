@@ -16,4 +16,5 @@ urlpatterns = [
     path('leagues/<uuid:league_id>/set-start-date/', views.SetLeagueStartDateView.as_view(), name="set_league_start_date"),
     path('leagues/<uuid:league_id>/schedule/', views.GetParticipantScheduleView.as_view(), name="get_participant_schedule"),
     path('leagues/<uuid:league_id>/leaderboard/', views.GetLeagueLeaderboardView.as_view(), name="get_league_leaderboard"),
+    path('leagues/<uuid:league_id>/matchup/', views.GetCurrentMatchupView.as_view(), name="get_current_matchup"),
 ]

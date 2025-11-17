@@ -261,3 +261,126 @@ def get_league_leaderboard_data(league, league_id, user_participant):
     return {
         'leaderboard': leaderboard_data
     }
+
+
+def get_current_matchup_data(league, league_id, user):
+    """
+    Get current matchup data for a user in a league.
+    
+    Args:
+        league: League object
+        league_id: UUID of the league
+        user: User object
+    
+    Returns:
+        dict with matchup data including week_number, player1, and player2
+    """
+    from catalog.models import LeagueParticipant
+    from api.apiUtils.utils import getUserWeeklyStockProfits, getTotalStockValue, getOwnedStocks
+    
+    # Get current week
+    current_week = calculate_current_week(league)
+    
+    if current_week is None or current_week == 0:
+        return {
+            'error': 'League has not started yet'
+        }
+    
+    # Get user's participant record
+    try:
+        user_participant = LeagueParticipant.objects.get(league=league, user=user)
+    except LeagueParticipant.DoesNotExist:
+        return {
+            'error': 'You are not a participant in this league'
+        }
+    
+    # Find current matchup
+    matchup = Matchup.objects.filter(
+        league=league,
+        week_number=current_week
+    ).filter(
+        Q(participant1=user_participant) | Q(participant2=user_participant)
+    ).first()
+    
+    if not matchup:
+        return {
+            'error': 'No matchup found for current week'
+        }
+    
+    # Determine which participant is player1 and which is player2
+    # We'll make the current user player1
+    if matchup.participant1 == user_participant:
+        participant1 = matchup.participant1
+        participant2 = matchup.participant2
+    else:
+        participant1 = matchup.participant2
+        participant2 = matchup.participant1
+    
+    # Calculate wins and losses for both participants
+    def calculate_wins_losses(participant):
+        participant_matchups = Matchup.objects.filter(
+            league=league
+        ).filter(
+            Q(participant1=participant) | Q(participant2=participant)
+        )
+        
+        wins = 0
+        losses = 0
+        
+        for m in participant_matchups:
+            winner = determine_matchup_winner(m, league, league_id, current_week)
+            if winner == participant:
+                wins += 1
+            elif winner is not None:
+                losses += 1
+        
+        return wins, losses
+    
+    wins1, losses1 = calculate_wins_losses(participant1)
+    wins2, losses2 = calculate_wins_losses(participant2)
+    
+    # Get net worth for both participants
+    net_worth1 = getTotalStockValue(league_id, participant1.user) + float(participant1.current_balance)
+    net_worth2 = getTotalStockValue(league_id, participant2.user) + float(participant2.current_balance)
+    
+    # Get weekly profits for both participants
+    weekly_profits1 = getUserWeeklyStockProfits(league_id, participant1.user)
+    weekly_profits2 = getUserWeeklyStockProfits(league_id, participant2.user)
+    
+    # Calculate total weekly profit
+    total_weekly_profit1 = sum(stock.get('weekly_profit', 0) for stock in weekly_profits1)
+    total_weekly_profit2 = sum(stock.get('weekly_profit', 0) for stock in weekly_profits2)
+    
+    # Format stocks data for player1
+    stocks1 = []
+    for stock in weekly_profits1:
+        stocks1.append({
+            'ticker': stock.get('ticker', ''),
+            'profit': round(float(stock.get('weekly_profit', 0)), 2)
+        })
+    
+    # Format stocks data for player2
+    stocks2 = []
+    for stock in weekly_profits2:
+        stocks2.append({
+            'ticker': stock.get('ticker', ''),
+            'profit': round(float(stock.get('weekly_profit', 0)), 2)
+        })
+    
+    return {
+        'week_number': current_week,
+        'player1': {
+            'name': participant1.user.username,
+            'value': round(net_worth1, 2),
+            'profit': round(total_weekly_profit1, 2),
+            'record': f"{wins1}-{losses1}",
+            'stocks': stocks1
+        },
+        'player2': {
+            'name': participant2.user.username,
+            'value': round(net_worth2, 2),
+            'profit': round(total_weekly_profit2, 2),
+            'record': f"{wins2}-{losses2}",
+            'stocks': stocks2
+        }
+    }
