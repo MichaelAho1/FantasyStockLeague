@@ -62,6 +62,7 @@ class LeagueParticipant(models.Model):
     current_balance = models.DecimalField(max_digits=12, decimal_places=2)
     wins = models.CharField(max_length=100, blank=True, null=True)  
     losses = models.CharField(max_length=100, blank=True, null=True)
+    leagueAdmin = models.BooleanField(default=False)  
 
     class Meta:
         unique_together = ['league', 'user']

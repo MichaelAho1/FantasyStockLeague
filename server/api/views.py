@@ -1,7 +1,8 @@
 from datetime import timedelta
+from decimal import Decimal
 from django.contrib.auth.models import User
 from rest_framework import generics
-from api.serializer import StockSerializer, UserSerializer
+from api.serializer import LeaguesSerializer, StockSerializer, UserSerializer
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from catalog.models import LeagueParticipant, Stock, UserLeagueStock, League
@@ -66,11 +67,6 @@ class ViewOpponentWeeklyProfits(generics.ListCreateAPIView):
 class LeagueView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
-    # Creating a new league
-    def post(self, request, league_name, start_date, format=None):
-        end_date = start_date + timedelta(weeks=7)
-        League.objects.create(name=league_name, start_date=start_date, end_date=end_date)
-
     # Viewing Data in a league
     def get(self, request, league_id):
         current_league = League.objects.get(league_id=league_id)
@@ -93,11 +89,55 @@ class LeagueView(generics.ListCreateAPIView):
 
 class ViewAllLeagues(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
+    queryset = League.objects.all()
+    serializer_class = LeaguesSerializer
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        if request.user.is_superuser:
+            all_leagues = League.objects.all()
+            serializer = LeaguesSerializer(all_leagues, many=True)
+            response_data = {
+                "is_superuser": True,
+                "leagues": serializer.data
+            }
+            return Response(response_data)
+
+        else:
+            current_leagues = LeagueParticipant.objects.filter(user=user).distinct()
+            leagues = []
+            for league_participant in current_leagues:
+                league_serializer = LeaguesSerializer(league_participant.league)
+                data = {
+                    "league": league_serializer.data,
+                    "leagueAdmin": league_participant.leagueAdmin, 
+                }
+                leagues.append(data)
+            response_data = {
+                "is_superuser": False,
+                "leagues": leagues
+            }
+            return Response(response_data)
     
-    def get(self, request):
-        #if a user is a superuser then get all leagues
-        #if a user is normal then get all leagues there in and there permissions
-        print("temp")
+    def post(self, request, *args, **kwargs):
+        """Handle league creation"""
+        serializer = LeaguesSerializer(data=request.data)
+        if serializer.is_valid():
+            league = serializer.save()
+            LeagueParticipant.objects.create(
+                league=league,
+                user=request.user,
+                current_balance=Decimal('10000.00'),  
+                leagueAdmin=True
+            )
+            return Response(serializer.data, status=201)
+        return Response({'errors': serializer.errors}, status=400)
+
+
+
+
+
+
 # Buy stocks
 # Sell stocks
 

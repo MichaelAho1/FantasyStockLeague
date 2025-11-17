@@ -1,9 +1,11 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import styles from './navBar.module.css';
 
 function navBar() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const selectedLeagueId = localStorage.getItem('selected_league_id')
 
   const handleLogout = () => {
     const confirmed = window.confirm('Are you sure you want to logout?')
@@ -12,6 +14,20 @@ function navBar() {
       localStorage.removeItem('refresh_token')
       localStorage.removeItem('selected_league_id')
       navigate('/Login')
+    }
+  }
+
+  const handleNavigation = (e, path) => {
+    // Always allow navigation to Leagues page
+    if (path === '/Private/Leagues') {
+      return
+    }
+    
+    // If no league is selected, prevent navigation and redirect to Leagues
+    if (!selectedLeagueId) {
+      e.preventDefault()
+      navigate('/Private/Leagues')
+      alert('Please select a league first before navigating to other pages.')
     }
   }
 
@@ -26,13 +42,31 @@ function navBar() {
             <Link to="/Private/Leagues">Leagues</Link>
           </p>
           <p className={styles.navbarItem}>
-            <Link to="/Private/Home">Home</Link>
+            <Link 
+              to="/Private/Home" 
+              onClick={(e) => handleNavigation(e, '/Private/Home')}
+              style={!selectedLeagueId ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
+            >
+              Home
+            </Link>
           </p>
           <p className={styles.navbarItem}>
-            <Link to="/Private/Matchup">Matchup</Link>
+            <Link 
+              to="/Private/MatchUp" 
+              onClick={(e) => handleNavigation(e, '/Private/MatchUp')}
+              style={!selectedLeagueId ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
+            >
+              Matchup
+            </Link>
           </p>
           <p className={styles.navbarItem}>
-            <Link to="/Private/ExploreStocks">Explore Stocks</Link>
+            <Link 
+              to="/Private/ExploreStocks" 
+              onClick={(e) => handleNavigation(e, '/Private/ExploreStocks')}
+              style={!selectedLeagueId ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
+            >
+              Explore Stocks
+            </Link>
           </p>
           <p className={styles.navbarItem}>
             <button className={styles.navbarButton} onClick={handleLogout}>

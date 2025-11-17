@@ -3,6 +3,7 @@ import Signup from "./PublicPages/Signup/signup.jsx"
 import Login from "./PublicPages/Login/login.jsx"
 import Home from "./PrivatePages/Home/home.jsx"
 import ProtectedRoute from "./components/protectedRoute.jsx"
+import LeagueRouteGuard from "./components/LeagueRouteGuard.jsx"
 import MatchUp from "./PrivatePages/MatchUp/matchUp.jsx"
 import ExploreStocks from "./PrivatePages/ExploreStocks/exploreStocks.jsx"
 import Leagues from "./PrivatePages/Leagues/leagues.jsx"
@@ -15,9 +16,9 @@ function App() {
         <Route path="/Login" element={<Login></Login>}></Route>
 
         <Route path="/Private/Leagues" element={<ProtectedRoute><Leagues></Leagues></ProtectedRoute>}></Route>
-        <Route path="/Private/Home" element={<ProtectedRoute><Home></Home></ProtectedRoute>}></Route>
-        <Route path="/Private/MatchUp" element={<ProtectedRoute><MatchUp></MatchUp></ProtectedRoute>}></Route>
-        <Route path="/Private/ExploreStocks" element={<ProtectedRoute><ExploreStocks></ExploreStocks></ProtectedRoute>}></Route>
+        <Route path="/Private/Home" element={<ProtectedRoute><LeagueRouteGuard><Home></Home></LeagueRouteGuard></ProtectedRoute>}></Route>
+        <Route path="/Private/MatchUp" element={<ProtectedRoute><LeagueRouteGuard><MatchUp></MatchUp></LeagueRouteGuard></ProtectedRoute>}></Route>
+        <Route path="/Private/ExploreStocks" element={<ProtectedRoute><LeagueRouteGuard><ExploreStocks></ExploreStocks></LeagueRouteGuard></ProtectedRoute>}></Route>
       </Routes>
     </BrowserRouter>
   )

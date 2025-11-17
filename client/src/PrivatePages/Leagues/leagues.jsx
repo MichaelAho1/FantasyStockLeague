@@ -34,7 +34,13 @@ function Leagues() {
 
       if (response.ok) {
         const data = await response.json()
-        setLeagues(data)
+        // Handle new response format with is_superuser flag
+        if (data.leagues) {
+          setLeagues(data.leagues)
+        } else {
+          // Fallback for old format
+          setLeagues(data)
+        }
       } else if (response.status === 404) {
         // Endpoint might not exist yet, set empty array
         setLeagues([])
@@ -74,7 +80,7 @@ function Leagues() {
     }
 
     try {
-      const response = await fetch('http://localhost:8000/api/leagues/create/', {
+      const response = await fetch('http://localhost:8000/api/leagues/', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -94,7 +100,21 @@ function Leagues() {
         fetchLeagues() // Refresh leagues list
       } else {
         const errorData = await response.json()
-        setError(errorData.detail || 'Failed to create league')
+        // Handle different error formats
+        let errorMessage = 'Failed to create league'
+        if (errorData.errors) {
+          // Handle validation errors
+          const errorMessages = Object.entries(errorData.errors).map(([field, messages]) => {
+            return `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`
+          })
+          errorMessage = errorMessages.join('; ')
+        } else if (errorData.detail) {
+          errorMessage = errorData.detail
+        } else if (typeof errorData === 'string') {
+          errorMessage = errorData
+        }
+        setError(errorMessage)
+        console.error('Create league error:', errorData)
       }
     } catch (err) {
       setError('Network error. Please try again.')
@@ -189,29 +209,40 @@ function Leagues() {
               </div>
             ) : (
               <div className={styles.leaguesGrid}>
-                {leagues.map((league) => (
-                  <div
-                    key={league.league_id}
-                    className={styles.leagueCard}
-                    onClick={() => handleLeagueClick(league.league_id)}
-                  >
-                    <h3 className={styles.leagueName}>{league.name}</h3>
-                    <div className={styles.leagueInfo}>
-                      <p className={styles.leagueDetail}>
-                        <span className={styles.label}>Start Date:</span> {new Date(league.start_date).toLocaleDateString()}
-                      </p>
-                      <p className={styles.leagueDetail}>
-                        <span className={styles.label}>End Date:</span> {new Date(league.end_date).toLocaleDateString()}
-                      </p>
-                      <p className={styles.leagueDetail}>
-                        <span className={styles.label}>Status:</span>{' '}
-                        <span className={league.is_active ? styles.active : styles.inactive}>
-                          {league.is_active ? 'Active' : 'Inactive'}
-                        </span>
-                      </p>
+                {leagues.map((leagueItem) => {
+                  const league = leagueItem.league || leagueItem
+                  const leagueId = league.league_id
+                  const isAdmin = leagueItem.leagueAdmin !== undefined ? leagueItem.leagueAdmin : false
+                  
+                  if (!leagueId) {
+                    console.error('League missing league_id:', league)
+                    return null
+                  }
+                  
+                  return (
+                    <div
+                      key={leagueId}
+                      className={styles.leagueCard}
+                      onClick={() => handleLeagueClick(leagueId)}
+                    >
+                      <h3 className={styles.leagueName}>
+                        {league.name}
+                        {isAdmin && <span className={styles.adminBadge}>Admin</span>}
+                      </h3>
+                      <div className={styles.leagueInfo}>
+                        <p className={styles.leagueDetail}>
+                          <span className={styles.label}>Start Date:</span> {new Date(league.start_date).toLocaleDateString()}
+                        </p>
+                        <p className={styles.leagueDetail}>
+                          <span className={styles.label}>End Date:</span> {new Date(league.end_date).toLocaleDateString()}
+                        </p>
+                        <p className={styles.leagueDetail}>
+                          <span className={styles.label}>League ID:</span> {leagueId}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>
