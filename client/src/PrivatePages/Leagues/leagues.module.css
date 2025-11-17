@@ -29,6 +29,17 @@
   color: #6366f1;
 }
 
+.superuserBadge {
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: #f59e0b;
+  color: #ffffff;
+  padding: 6px 16px;
+  border-radius: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 .subtitle {
   font-size: 1.25rem;
   color: #6b7280;
@@ -163,6 +174,17 @@
   font-size: 0.75rem;
   font-weight: 600;
   background: #6366f1;
+  color: #ffffff;
+  padding: 4px 12px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.viewOnlyBadge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: #9ca3af;
   color: #ffffff;
   padding: 4px 12px;
   border-radius: 12px;

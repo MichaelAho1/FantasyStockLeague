@@ -6,7 +6,8 @@ from api.serializer import LeaguesSerializer, StockSerializer, UserSerializer
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from catalog.models import LeagueParticipant, Stock, UserLeagueStock, League
-from api.utils import getCurrentOpponent, getUserWeeklyStockProfits, getOwnedStocks, getTotalStockValue
+from api.apiUtils.utils import getCurrentOpponent, getUserWeeklyStockProfits, getOwnedStocks, getTotalStockValue
+from api.apiUtils.joinLeague import join_league
 
 class CreateUserView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -96,10 +97,34 @@ class ViewAllLeagues(generics.ListCreateAPIView):
         user = request.user
         if request.user.is_superuser:
             all_leagues = League.objects.all()
-            serializer = LeaguesSerializer(all_leagues, many=True)
+            leagues = []
+            for league in all_leagues:
+                league_serializer = LeaguesSerializer(league)
+                # Check if superuser is a participant in this league
+                participant = LeagueParticipant.objects.filter(
+                    league=league,
+                    user=user
+                ).first()
+                
+                if participant:
+                    # Superuser is a participant, show like normal user
+                    data = {
+                        "league": league_serializer.data,
+                        "leagueAdmin": participant.leagueAdmin,
+                        "isParticipant": True
+                    }
+                else:
+                    # Superuser is not a participant, show as view-only
+                    data = {
+                        "league": league_serializer.data,
+                        "leagueAdmin": False,
+                        "isParticipant": False
+                    }
+                leagues.append(data)
+            
             response_data = {
                 "is_superuser": True,
-                "leagues": serializer.data
+                "leagues": leagues
             }
             return Response(response_data)
 
@@ -110,7 +135,8 @@ class ViewAllLeagues(generics.ListCreateAPIView):
                 league_serializer = LeaguesSerializer(league_participant.league)
                 data = {
                     "league": league_serializer.data,
-                    "leagueAdmin": league_participant.leagueAdmin, 
+                    "leagueAdmin": league_participant.leagueAdmin,
+                    "isParticipant": True
                 }
                 leagues.append(data)
             response_data = {
@@ -120,7 +146,6 @@ class ViewAllLeagues(generics.ListCreateAPIView):
             return Response(response_data)
     
     def post(self, request, *args, **kwargs):
-        """Handle league creation"""
         serializer = LeaguesSerializer(data=request.data)
         if serializer.is_valid():
             league = serializer.save()
@@ -134,7 +159,19 @@ class ViewAllLeagues(generics.ListCreateAPIView):
         return Response({'errors': serializer.errors}, status=400)
 
 
+class JoinLeagueView(generics.CreateAPIView):
+    permission_classes = [IsAuthenticated]
 
+    def post(self, request, *args, **kwargs):
+        try:
+            league_id = request.data.get('league_id')
+            success, response_data, status_code = join_league(league_id, request.user)
+            return Response(response_data, status=status_code)
+        except Exception as e:
+            import traceback
+            print(f"Error joining league: {str(e)}")
+            print(traceback.format_exc())
+            return Response({'error': f'An error occurred: {str(e)}'}, status=500)
 
 
 

@@ -8,6 +8,7 @@ function Leagues() {
   const [leagues, setLeagues] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [isSuperuser, setIsSuperuser] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showJoinModal, setShowJoinModal] = useState(false)
   const [leagueName, setLeagueName] = useState('')
@@ -37,9 +38,11 @@ function Leagues() {
         // Handle new response format with is_superuser flag
         if (data.leagues) {
           setLeagues(data.leagues)
+          setIsSuperuser(data.is_superuser || false)
         } else {
           // Fallback for old format
           setLeagues(data)
+          setIsSuperuser(false)
         }
       } else if (response.status === 404) {
         // Endpoint might not exist yet, set empty array
@@ -144,13 +147,23 @@ function Leagues() {
       })
 
       if (response.ok) {
+        const responseData = await response.json()
         setShowJoinModal(false)
         setJoinLeagueId('')
         setError('')
+        
+        // Auto-select the league after joining
+        if (responseData.league && responseData.league.league_id) {
+          localStorage.setItem('selected_league_id', responseData.league.league_id)
+        }
+        
         fetchLeagues() // Refresh leagues list
       } else {
         const errorData = await response.json()
-        setError(errorData.detail || 'Failed to join league')
+        // Handle different error formats
+        const errorMessage = errorData.error || errorData.detail || 'Failed to join league'
+        setError(errorMessage)
+        console.error('Join league error:', errorData)
       }
     } catch (err) {
       setError('Network error. Please try again.')
@@ -158,7 +171,11 @@ function Leagues() {
   }
 
   // Handle league click - navigate to home with selected league
-  const handleLeagueClick = (leagueId) => {
+  const handleLeagueClick = (leagueId, isParticipant) => {
+    // Superusers can only select leagues they are participants in
+    if (isSuperuser && !isParticipant) {
+      return // Don't allow navigation for non-participant leagues
+    }
     localStorage.setItem('selected_league_id', leagueId)
     navigate('/Private/Home')
   }
@@ -171,8 +188,11 @@ function Leagues() {
           <div className={styles.header}>
             <h1 className={styles.welcomeText}>
               Welcome, <span className={styles.username}>{username || 'User'}</span>!
+              {isSuperuser && <span className={styles.superuserBadge}>Superuser</span>}
             </h1>
-            <p className={styles.subtitle}>Manage your fantasy stock leagues</p>
+            <p className={styles.subtitle}>
+              {isSuperuser ? 'View all leagues (select only leagues you participate in)' : 'Manage your fantasy stock leagues'}
+            </p>
           </div>
 
           {error && <div className={styles.errorMessage}>{error}</div>}
@@ -199,7 +219,9 @@ function Leagues() {
           </div>
 
           <div className={styles.leaguesSection}>
-            <h2 className={styles.sectionTitle}>Your Leagues</h2>
+            <h2 className={styles.sectionTitle}>
+              {isSuperuser ? 'All Leagues' : 'Your Leagues'}
+            </h2>
             {loading ? (
               <div className={styles.loading}>Loading leagues...</div>
             ) : leagues.length === 0 ? (
@@ -213,21 +235,28 @@ function Leagues() {
                   const league = leagueItem.league || leagueItem
                   const leagueId = league.league_id
                   const isAdmin = leagueItem.leagueAdmin !== undefined ? leagueItem.leagueAdmin : false
+                  const isParticipant = leagueItem.isParticipant !== undefined ? leagueItem.isParticipant : true
                   
                   if (!leagueId) {
                     console.error('League missing league_id:', league)
                     return null
                   }
                   
+                  // For superusers, disable clicking if not a participant
+                  const isClickable = !isSuperuser || isParticipant
+                  const cardStyle = isClickable ? {} : { opacity: 0.6, cursor: 'not-allowed' }
+                  
                   return (
                     <div
                       key={leagueId}
                       className={styles.leagueCard}
-                      onClick={() => handleLeagueClick(leagueId)}
+                      style={cardStyle}
+                      onClick={() => handleLeagueClick(leagueId, isParticipant)}
                     >
                       <h3 className={styles.leagueName}>
                         {league.name}
                         {isAdmin && <span className={styles.adminBadge}>Admin</span>}
+                        {isSuperuser && !isParticipant && <span className={styles.viewOnlyBadge}>View Only</span>}
                       </h3>
                       <div className={styles.leagueInfo}>
                         <p className={styles.leagueDetail}>
@@ -239,6 +268,11 @@ function Leagues() {
                         <p className={styles.leagueDetail}>
                           <span className={styles.label}>League ID:</span> {leagueId}
                         </p>
+                        {isSuperuser && !isParticipant && (
+                          <p className={styles.leagueDetail} style={{ color: '#6b7280', fontStyle: 'italic' }}>
+                            You are not a participant in this league
+                          </p>
+                        )}
                       </div>
                     </div>
                   )
