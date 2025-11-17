@@ -67,6 +67,8 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  max-width: 50%;
+  flex: 0 0 50%;
 }
 
 .ticker {
@@ -83,7 +85,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 200px;
+  width: 100%;
 }
 
 .stockPrice {
@@ -140,9 +142,5 @@
   
   .stockItem {
     padding: 12px 14px;
-  }
-  
-  .stockName {
-    max-width: 150px;
   }
 }

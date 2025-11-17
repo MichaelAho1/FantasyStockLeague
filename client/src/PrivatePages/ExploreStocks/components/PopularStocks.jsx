@@ -7,20 +7,30 @@ function PopularStocks({ stocks }) {
         <h2>Popular Stocks</h2>
       </div>
       <div className={styles.stocksList}>
-        {stocks.map((stock, index) => (
-          <div key={index} className={styles.stockItem}>
-            <div className={styles.stockInfo}>
-              <div className={styles.ticker}>{stock.ticker}</div>
-              <div className={styles.stockName}>{stock.name}</div>
-            </div>
-            <div className={styles.stockPrice}>
-              <div className={styles.price}>${stock.price.toFixed(2)}</div>
-              <div className={`${styles.change} ${stock.change >= 0 ? styles.positive : styles.negative}`}>
-                {stock.change >= 0 ? '+' : ''}${stock.change.toFixed(2)} ({stock.changePercent >= 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%)
+        {stocks && stocks.length > 0 ? (
+          stocks.map((stock, index) => {
+            const currentPrice = stock.current_price ?? stock.price ?? 0
+            const change = stock.change ?? 0
+            const changePercent = stock.changePercent ?? 0
+            
+            return (
+              <div key={index} className={styles.stockItem}>
+                <div className={styles.stockInfo}>
+                  <div className={styles.ticker}>{stock.ticker || 'N/A'}</div>
+                  <div className={styles.stockName}>{stock.name || 'N/A'}</div>
+                </div>
+                <div className={styles.stockPrice}>
+                  <div className={styles.price}>${currentPrice.toFixed(2)}</div>
+                  <div className={`${styles.change} ${change >= 0 ? styles.positive : styles.negative}`}>
+                    {change >= 0 ? '+' : ''}${change.toFixed(2)}({changePercent >= 0 ? '+' : ''}{changePercent.toFixed(2)}%)
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        ))}
+            )
+          })
+        ) : (
+          <div>No stocks available</div>
+        )}
       </div>
     </div>
   )

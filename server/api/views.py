@@ -14,6 +14,7 @@ class CreateUserView(generics.CreateAPIView):
 
 class ViewAllStocks(generics.ListCreateAPIView):
     serializer_class = StockSerializer
+    queryset = Stock.objects.all()  
     permission_classes = [AllowAny]
 
     def get(self, request, format=None):
