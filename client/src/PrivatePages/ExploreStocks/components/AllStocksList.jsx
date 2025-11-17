@@ -3,7 +3,7 @@ import SearchBar from './SearchBar.jsx'
 import Pagination from '../../../components/Pagination.jsx'
 import styles from './AllStocksList.module.css'
 
-function AllStocksList({ stocks, searchTerm, onSearch }) {
+function AllStocksList({ stocks, searchTerm, onSearch, onStockClick }) {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 
@@ -39,7 +39,12 @@ function AllStocksList({ stocks, searchTerm, onSearch }) {
             </div>
           ) : (
             currentStocks.map((stock, index) => (
-              <div key={index} className={styles.stockRow}>
+              <div 
+                key={index} 
+                className={styles.stockRow}
+                onClick={() => onStockClick && onStockClick(stock)}
+                style={{ cursor: onStockClick ? 'pointer' : 'default' }}
+              >
                 <div className={styles.ticker}>{stock.ticker}</div>
                 <div className={styles.stockName}>{stock.name}</div>
                 <div className={styles.price}>${stock.price.toFixed(2)}</div>

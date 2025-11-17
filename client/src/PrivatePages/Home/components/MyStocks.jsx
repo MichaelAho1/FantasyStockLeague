@@ -1,28 +1,64 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Pagination from '../../../components/Pagination.jsx'
 import styles from './MyStocks.module.css'
 
 function MyStocks() {
-  const [stocks] = useState([
-    { ticker: 'AAPL', name: 'Apple Inc.', startPrice: 150.00, currentPrice: 155.50, shares: 10 },
-    { ticker: 'GOOGL', name: 'Alphabet Inc.', startPrice: 2800.00, currentPrice: 2750.00, shares: 2 },
-    { ticker: 'MSFT', name: 'Microsoft Corp.', startPrice: 300.00, currentPrice: 315.25, shares: 5 },
-    { ticker: 'TSLA', name: 'Tesla Inc.', startPrice: 200.00, currentPrice: 195.75, shares: 8 },
-    { ticker: 'AMZN', name: 'Amazon.com Inc.', startPrice: 3200.00, currentPrice: 3250.00, shares: 1 },
-    { ticker: 'META', name: 'Meta Platforms Inc.', startPrice: 350.00, currentPrice: 365.80, shares: 3 },
-    { ticker: 'NVDA', name: 'NVIDIA Corp.', startPrice: 450.00, currentPrice: 475.25, shares: 4 },
-    { ticker: 'NFLX', name: 'Netflix Inc.', startPrice: 425.00, currentPrice: 410.50, shares: 6 },
-    { ticker: 'DIS', name: 'Walt Disney Co.', startPrice: 95.00, currentPrice: 98.75, shares: 12 },
-    { ticker: 'UBER', name: 'Uber Technologies Inc.', startPrice: 45.00, currentPrice: 47.30, shares: 20 },
-    { ticker: 'SPOT', name: 'Spotify Technology S.A.', startPrice: 180.00, currentPrice: 175.40, shares: 8 },
-    { ticker: 'SQ', name: 'Block Inc.', startPrice: 65.00, currentPrice: 68.90, shares: 15 },
-    { ticker: 'PYPL', name: 'PayPal Holdings Inc.', startPrice: 85.00, currentPrice: 82.15, shares: 10 },
-    { ticker: 'ADBE', name: 'Adobe Inc.', startPrice: 520.00, currentPrice: 535.60, shares: 2 },
-    { ticker: 'CRM', name: 'Salesforce Inc.', startPrice: 220.00, currentPrice: 225.80, shares: 5 }
-  ])
-
+  const [stocks, setStocks] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 9
+
+  useEffect(() => {
+    fetchOwnedStocks()
+  }, [])
+
+  const fetchOwnedStocks = async () => {
+    const leagueId = localStorage.getItem('selected_league_id')
+    if (!leagueId) {
+      setError('Please select a league first')
+      setLoading(false)
+      return
+    }
+
+    const token = localStorage.getItem('access_token')
+    if (!token) {
+      setError('Please log in')
+      setLoading(false)
+      return
+    }
+
+    try {
+      const response = await fetch(`http://localhost:8000/api/owned-stocks/${leagueId}/`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        // Transform data to match component format
+        const transformedStocks = data.map(stock => ({
+          ticker: stock.ticker,
+          name: stock.name,
+          startPrice: parseFloat(stock.start_price) || 0,
+          currentPrice: parseFloat(stock.current_price) || 0,
+          shares: parseFloat(stock.shares) || 0
+        }))
+        setStocks(transformedStocks)
+        setError('')
+      } else {
+        setError('Failed to load stocks')
+        setStocks([])
+      }
+    } catch (err) {
+      console.error('Error fetching owned stocks:', err)
+      setError('Network error. Please try again.')
+      setStocks([])
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // Calculate totals
   const totalValue = stocks.reduce((sum, stock) => sum + (stock.currentPrice * stock.shares), 0)
@@ -43,52 +79,67 @@ function MyStocks() {
     <div className={styles.myStocksSection}>
       <h2>My Stocks</h2>
       
-      <div className={styles.stockTable}>
-        <div className={styles.tableHeader}>
-          <div>Ticker</div>
-          <div>Stock Name</div>
-          <div>Day Start Price</div>
-          <div>Current Price</div>
-          <div>Daily Price Change</div>
-          <div>Shares</div>
+      {loading ? (
+        <div className={styles.loading}>Loading stocks...</div>
+      ) : error ? (
+        <div className={styles.errorMessage}>{error}</div>
+      ) : stocks.length === 0 ? (
+        <div className={styles.emptyState}>
+          <p>You don't own any stocks yet.</p>
+          <p>Go to Explore Stocks to start buying!</p>
         </div>
-        <div className={styles.stockTableBody}>
-          {currentStocks.map((stock, index) => {
-            const profit = (stock.currentPrice - stock.startPrice) * stock.shares
-            const profitPercent = ((stock.currentPrice - stock.startPrice) / stock.startPrice) * 100
-            
-            return (
-              <div key={index} className={styles.stockRow}>
-                <div className={styles.ticker}>{stock.ticker}</div>
-                <div className={styles.stockName}>{stock.name}</div>
-                <div className={styles.startPrice}>${stock.startPrice.toFixed(2)}</div>
-                <div className={styles.currentPrice}>${stock.currentPrice.toFixed(2)}</div>
-                <div className={`${styles.profit} ${profit >= 0 ? styles.profitPositive : styles.profitNegative}`}>
-                  ${profit.toFixed(2)} ({profitPercent.toFixed(1)}%)
-                </div>
-                <div className={styles.shares}>{stock.shares}</div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-      <Pagination 
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={handlePageChange}
-      />
-      <div className={styles.stockSummary}>
-        <div className={styles.summaryItem}>
-          <span className={styles.summaryLabel}>Net Worth:</span>
-          <span className={styles.summaryValue}>${totalValue.toFixed(2)}</span>
-        </div>
-        <div className={styles.summaryItem}>
-          <span className={styles.summaryLabel}>Total Weekly Profit:</span>
-          <span className={`${styles.summaryValue} ${totalProfit >= 0 ? styles.profitPositive : styles.profitNegative}`}>
-            {totalProfit >= 0 ? '+' : ''}${totalProfit.toFixed(2)}
-          </span>
-        </div>
-      </div>
+      ) : (
+        <>
+          <div className={styles.stockTable}>
+            <div className={styles.tableHeader}>
+              <div>Ticker</div>
+              <div>Stock Name</div>
+              <div>Day Start Price</div>
+              <div>Current Price</div>
+              <div>Daily Price Change</div>
+              <div>Shares</div>
+            </div>
+            <div className={styles.stockTableBody}>
+              {currentStocks.map((stock, index) => {
+                const profit = (stock.currentPrice - stock.startPrice) * stock.shares
+                const profitPercent = stock.startPrice !== 0 ? ((stock.currentPrice - stock.startPrice) / stock.startPrice) * 100 : 0
+                
+                return (
+                  <div key={index} className={styles.stockRow}>
+                    <div className={styles.ticker}>{stock.ticker}</div>
+                    <div className={styles.stockName}>{stock.name}</div>
+                    <div className={styles.startPrice}>${stock.startPrice.toFixed(2)}</div>
+                    <div className={styles.currentPrice}>${stock.currentPrice.toFixed(2)}</div>
+                    <div className={`${styles.profit} ${profit >= 0 ? styles.profitPositive : styles.profitNegative}`}>
+                      ${profit.toFixed(2)} ({profitPercent.toFixed(1)}%)
+                    </div>
+                    <div className={styles.shares}>{stock.shares.toFixed(2)}</div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+          {totalPages > 1 && (
+            <Pagination 
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+            />
+          )}
+          <div className={styles.stockSummary}>
+            <div className={styles.summaryItem}>
+              <span className={styles.summaryLabel}>Net Worth:</span>
+              <span className={styles.summaryValue}>${totalValue.toFixed(2)}</span>
+            </div>
+            <div className={styles.summaryItem}>
+              <span className={styles.summaryLabel}>Total Weekly Profit:</span>
+              <span className={`${styles.summaryValue} ${totalProfit >= 0 ? styles.profitPositive : styles.profitNegative}`}>
+                {totalProfit >= 0 ? '+' : ''}${totalProfit.toFixed(2)}
+              </span>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }

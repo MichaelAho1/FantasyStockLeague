@@ -10,4 +10,7 @@ urlpatterns = [
     path('opponent-weekly-profits/<uuid:league_id>/', views.ViewOpponentWeeklyProfits.as_view(), name="ViewOpponentWeeklyProfits"),
     path('leagues/', views.ViewAllLeagues.as_view(), name="leagues"),
     path('leagues/join/', views.JoinLeagueView.as_view(), name="join_league"),
+    path('stocks/buy/', views.BuyStockView.as_view(), name="buy_stock"),
+    path('stocks/sell/', views.SellStockView.as_view(), name="sell_stock"),
+    path('stocks/info/<uuid:league_id>/<str:ticker>/', views.GetStockInfoView.as_view(), name="get_stock_info"),
 ]

@@ -3,12 +3,15 @@ import NavBar from "../components/navBar.jsx"
 import SearchBar from "./components/SearchBar.jsx"
 import PopularStocks from "./components/PopularStocks.jsx"
 import AllStocksList from "./components/AllStocksList.jsx"
+import StockModal from "./components/StockModal.jsx"
 import styles from "./exploreStocks.module.css"
 
 function ExploreStocks() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filteredStocks, setFilteredStocks] = useState([])
   const [allStocks, setAllStocks] = useState([])
+  const [selectedStock, setSelectedStock] = useState(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   const getStocks = async() => {
     const response = await fetch("http://localhost:8000/api/stocks/")
@@ -62,23 +65,39 @@ function ExploreStocks() {
     }
   }
 
+  const handleStockClick = (stock) => {
+    setSelectedStock(stock)
+    setIsModalOpen(true)
+  }
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false)
+    setSelectedStock(null)
+  }
+
   return (
     <>
         <NavBar></NavBar>
         <div className={styles.exploreStocksContainer}>
             <div className={styles.contentContainer}>
                 <div className={styles.leftSide}>
-                    <PopularStocks stocks={popularStocks} />
+                    <PopularStocks stocks={popularStocks} onStockClick={handleStockClick} />
                 </div>
                 <div className={styles.rightSide}>
                     <AllStocksList 
                         stocks={searchTerm ? filteredStocks : allStocks}
                         searchTerm={searchTerm}
                         onSearch={handleSearch}
+                        onStockClick={handleStockClick}
                     />
                 </div>
             </div>
         </div>
+        <StockModal 
+          stock={selectedStock} 
+          isOpen={isModalOpen} 
+          onClose={handleCloseModal} 
+        />
     </>
   )
 }

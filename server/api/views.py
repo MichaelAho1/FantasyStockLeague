@@ -46,10 +46,42 @@ class ViewAllOwnedStocks(generics.ListCreateAPIView):
                 "current_price":stock.stock.current_price,
                 "start_price":stock.stock.start_price,
                 "ticker":stock.stock.ticker,
-                "name":stock.name,
+                "name":stock.stock.name,
             }
             stocks.append(data)
         return Response(stocks)
+
+
+class GetStockInfoView(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, league_id, ticker, format=None):
+        try:
+            league = League.objects.get(league_id=league_id)
+            participant = LeagueParticipant.objects.get(league=league, user=request.user)
+            stock = Stock.objects.get(ticker=ticker)
+            
+            # Get owned shares if any
+            try:
+                user_stock = UserLeagueStock.objects.get(
+                    league_participant=participant,
+                    stock=stock
+                )
+                owned_shares = float(user_stock.shares)
+            except UserLeagueStock.DoesNotExist:
+                owned_shares = 0
+            
+            return Response({
+                'balance': float(participant.current_balance),
+                'owned_shares': owned_shares,
+                'current_price': float(stock.current_price)
+            })
+        except League.DoesNotExist:
+            return Response({'error': 'League not found'}, status=404)
+        except LeagueParticipant.DoesNotExist:
+            return Response({'error': 'You are not a participant in this league'}, status=404)
+        except Stock.DoesNotExist:
+            return Response({'error': 'Stock not found'}, status=404)
 
 class ViewUserWeeklyProfits(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
@@ -175,7 +207,49 @@ class JoinLeagueView(generics.CreateAPIView):
 
 
 
-# Buy stocks
-# Sell stocks
+class BuyStockView(generics.CreateAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        try:
+            from api.apiUtils.buySellStock import buy_stock
+            
+            league_id = request.data.get('league_id')
+            ticker = request.data.get('ticker')
+            shares = request.data.get('shares')
+            
+            if not league_id or not ticker or not shares:
+                return Response({'error': 'league_id, ticker, and shares are required'}, status=400)
+            
+            success, response_data, status_code = buy_stock(league_id, request.user, ticker, shares)
+            return Response(response_data, status=status_code)
+        except Exception as e:
+            import traceback
+            print(f"Error buying stock: {str(e)}")
+            print(traceback.format_exc())
+            return Response({'error': f'An error occurred: {str(e)}'}, status=500)
+
+
+class SellStockView(generics.CreateAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        try:
+            from api.apiUtils.buySellStock import sell_stock
+            
+            league_id = request.data.get('league_id')
+            ticker = request.data.get('ticker')
+            shares = request.data.get('shares')
+            
+            if not league_id or not ticker or not shares:
+                return Response({'error': 'league_id, ticker, and shares are required'}, status=400)
+            
+            success, response_data, status_code = sell_stock(league_id, request.user, ticker, shares)
+            return Response(response_data, status=status_code)
+        except Exception as e:
+            import traceback
+            print(f"Error selling stock: {str(e)}")
+            print(traceback.format_exc())
+            return Response({'error': f'An error occurred: {str(e)}'}, status=500)
 
 

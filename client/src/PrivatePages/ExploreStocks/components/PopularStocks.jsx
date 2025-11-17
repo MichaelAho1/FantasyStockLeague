@@ -1,6 +1,6 @@
 import styles from './PopularStocks.module.css'
 
-function PopularStocks({ stocks }) {
+function PopularStocks({ stocks, onStockClick }) {
   return (
     <div className={styles.popularSection}>
       <div className={styles.sectionHeader}>
@@ -14,7 +14,12 @@ function PopularStocks({ stocks }) {
             const changePercent = stock.changePercent ?? 0
             
             return (
-              <div key={index} className={styles.stockItem}>
+              <div 
+                key={index} 
+                className={styles.stockItem}
+                onClick={() => onStockClick && onStockClick(stock)}
+                style={{ cursor: onStockClick ? 'pointer' : 'default' }}
+              >
                 <div className={styles.stockInfo}>
                   <div className={styles.ticker}>{stock.ticker || 'N/A'}</div>
                   <div className={styles.stockName}>{stock.name || 'N/A'}</div>

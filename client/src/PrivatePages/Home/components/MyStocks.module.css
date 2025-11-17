@@ -174,3 +174,33 @@
 .summaryValue.profitNegative {
   color: #dc2626;
 }
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #6b7280;
+  font-size: 1rem;
+}
+
+.errorMessage {
+  background: #fee2e2;
+  color: #dc2626;
+  padding: 16px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: 1px solid #fecaca;
+  margin: 16px 0;
+  text-align: center;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 60px 20px;
+  color: #6b7280;
+}
+
+.emptyState p {
+  margin: 8px 0;
+  font-size: 1rem;
+}
