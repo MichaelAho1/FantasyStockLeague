@@ -13,7 +13,7 @@ function MyStocks() {
 
   useEffect(() => {
     fetchOwnedStocks()
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchOwnedStocks = async () => {
     const leagueId = localStorage.getItem('selected_league_id')
@@ -32,8 +32,10 @@ function MyStocks() {
 
     try {
       const response = await fetch(`http://localhost:8000/api/owned-stocks/${leagueId}/`, {
+        method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
       })
 
@@ -62,8 +64,16 @@ function MyStocks() {
         }
         
         setError('')
+      } else if (response.status === 401) {
+        // Token expired or invalid
+        setError('Your session has expired. Please log in again.')
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('selected_league_id')
+        // Optionally redirect to login
+        window.location.href = '/Login'
       } else {
-        setError('Failed to load stocks')
+        const errorData = await response.json().catch(() => ({}))
+        setError(errorData.error || errorData.detail || 'Failed to load stocks')
         setStocks([])
       }
     } catch (err) {

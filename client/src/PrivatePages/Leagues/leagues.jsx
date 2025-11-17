@@ -188,11 +188,73 @@ function Leagues() {
     navigate('/Private/Home')
   }
 
+  // Calculate the next Monday (or later if today is Monday)
+  const getNextMonday = () => {
+    const today = new Date()
+    const dayOfWeek = today.getDay() // 0 = Sunday, 1 = Monday, etc.
+    let daysUntilMonday
+    if (dayOfWeek === 0) {
+      // If Sunday, next Monday is 1 day away
+      daysUntilMonday = 1
+    } else if (dayOfWeek === 1) {
+      // If today is Monday, next Monday is 7 days away
+      daysUntilMonday = 7
+    } else {
+      // For other days, calculate days until next Monday
+      daysUntilMonday = 8 - dayOfWeek
+    }
+    const nextMonday = new Date(today)
+    nextMonday.setDate(today.getDate() + daysUntilMonday)
+    return nextMonday
+  }
+
+  // Get minimum date string for date input (next Monday)
+  const getMinDate = () => {
+    const nextMonday = getNextMonday()
+    const year = nextMonday.getFullYear()
+    const month = String(nextMonday.getMonth() + 1).padStart(2, '0')
+    const day = String(nextMonday.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
+  // Validate that the selected date is a Monday
+  const isMonday = (dateString) => {
+    // Parse date string (YYYY-MM-DD) to avoid timezone issues
+    const [year, month, day] = dateString.split('-').map(Number)
+    const date = new Date(year, month - 1, day) // month is 0-indexed
+    return date.getDay() === 1 // 1 = Monday
+  }
+
   // Handle set start date
   const handleSetStartDate = async (e) => {
     e.preventDefault()
     if (!selectedLeagueForStartDate || !startDate) {
       setError('Please select a start date')
+      return
+    }
+
+    // Validate that the date is a Monday
+    const isMondayCheck = isMonday(startDate)
+    console.log('Selected date:', startDate, 'Is Monday:', isMondayCheck)
+    if (!isMondayCheck) {
+      setError('Start date must be a Monday')
+      return
+    }
+
+    // Validate that the date is the next Monday or later
+    // Parse date string to avoid timezone issues
+    const [year, month, day] = startDate.split('-').map(Number)
+    const selectedDate = new Date(year, month - 1, day)
+    selectedDate.setHours(0, 0, 0, 0)
+    
+    const nextMonday = getNextMonday()
+    nextMonday.setHours(0, 0, 0, 0)
+    
+    console.log('Selected date:', selectedDate, 'Next Monday:', nextMonday, 'Comparison:', selectedDate < nextMonday)
+    
+    if (selectedDate < nextMonday) {
+      const nextMondayStr = getMinDate()
+      setError(`Start date must be the next Monday (${nextMondayStr}) or later`)
       return
     }
 
@@ -217,7 +279,17 @@ function Leagues() {
         fetchLeagues() // Refresh leagues list
       } else {
         const errorData = await response.json()
-        setError(errorData.error || 'Failed to set start date')
+        // Handle different error formats
+        let errorMessage = 'Failed to set start date'
+        if (errorData.error) {
+          errorMessage = errorData.error
+        } else if (errorData.detail) {
+          errorMessage = errorData.detail
+        } else if (typeof errorData === 'string') {
+          errorMessage = errorData
+        }
+        setError(errorMessage)
+        console.error('Set start date error:', errorData)
       }
     } catch (err) {
       setError('Network error. Please try again.')
@@ -318,10 +390,20 @@ function Leagues() {
                         {league.start_date ? (
                           <>
                             <p className={styles.leagueDetail}>
-                              <span className={styles.label}>Start Date:</span> {new Date(league.start_date).toLocaleDateString()}
+                              <span className={styles.label}>Start Date:</span> {(() => {
+                                // Parse date string to avoid timezone issues
+                                const [year, month, day] = league.start_date.split('T')[0].split('-').map(Number)
+                                const date = new Date(year, month - 1, day)
+                                return date.toLocaleDateString()
+                              })()}
                             </p>
                             <p className={styles.leagueDetail}>
-                              <span className={styles.label}>End Date:</span> {new Date(league.end_date).toLocaleDateString()}
+                              <span className={styles.label}>End Date:</span> {(() => {
+                                // Parse date string to avoid timezone issues
+                                const [year, month, day] = league.end_date.split('T')[0].split('-').map(Number)
+                                const date = new Date(year, month - 1, day)
+                                return date.toLocaleDateString()
+                              })()}
                             </p>
                           </>
                         ) : (
@@ -436,22 +518,31 @@ function Leagues() {
             <p style={{ color: '#6b7280', marginBottom: '20px' }}>
               This league has 8 participants. Set the start date to begin the league.
             </p>
+            {error && <div className={styles.errorMessage} style={{ marginBottom: '20px' }}>{error}</div>}
             <form onSubmit={handleSetStartDate}>
               <div className={styles.formGroup}>
-                <label htmlFor="setStartDate">Start Date</label>
+                <label htmlFor="setStartDate">Start Date (Must be a Monday)</label>
                 <input
                   type="date"
                   id="setStartDate"
                   value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
+                  onChange={(e) => {
+                    setStartDate(e.target.value)
+                    setError('') // Clear error when user changes date
+                  }}
+                  min={getMinDate()}
                   required
                 />
+                <p style={{ color: '#6b7280', fontSize: '0.875rem', marginTop: '8px' }}>
+                  The start date must be the next Monday ({getMinDate()}) or later
+                </p>
               </div>
               <div className={styles.modalActions}>
                 <button type="button" className={styles.cancelButton} onClick={() => {
                   setShowSetStartDateModal(false)
                   setSelectedLeagueForStartDate(null)
                   setStartDate('')
+                  setError('')
                 }}>
                   Cancel
                 </button>

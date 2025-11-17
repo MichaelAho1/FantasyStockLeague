@@ -1,4 +1,5 @@
 from decimal import Decimal
+from datetime import date
 from rest_framework.response import Response
 from catalog.models import League, LeagueParticipant, Stock, UserLeagueStock
 from api.apiUtils.utils import getOwnedStocks
@@ -10,6 +11,16 @@ def buy_stock(league_id, user, ticker, shares):
     Returns a tuple: (success: bool, response_data: dict, status_code: int)
     """
     try:
+        # Check if today is a trading day (Saturday or Sunday)
+        today = date.today()
+        day_of_week = today.weekday()  # 0 = Monday, 6 = Sunday
+        # Saturday = 5, Sunday = 6
+        if day_of_week not in [5, 6]:
+            day_names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+            return False, {
+                'error': f'Trading is only available on Saturday and Sunday. Today is {day_names[day_of_week]}.'
+            }, 400
+        
         # Get league and participant
         league = League.objects.get(league_id=league_id)
         participant = LeagueParticipant.objects.get(league=league, user=user)
@@ -66,6 +77,16 @@ def sell_stock(league_id, user, ticker, shares):
     Returns a tuple: (success: bool, response_data: dict, status_code: int)
     """
     try:
+        # Check if today is a trading day (Saturday or Sunday)
+        today = date.today()
+        day_of_week = today.weekday()  # 0 = Monday, 6 = Sunday
+        # Saturday = 5, Sunday = 6
+        if day_of_week not in [5, 6]:
+            day_names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+            return False, {
+                'error': f'Trading is only available on Saturday and Sunday. Today is {day_names[day_of_week]}.'
+            }, 400
+        
         # Get league and participant
         league = League.objects.get(league_id=league_id)
         participant = LeagueParticipant.objects.get(league=league, user=user)

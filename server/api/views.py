@@ -285,6 +285,70 @@ class SellStockView(generics.CreateAPIView):
             return Response({'error': f'An error occurred: {str(e)}'}, status=500)
 
 
+class GetParticipantScheduleView(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, league_id, format=None):
+        """Get the schedule for the current user in a specific league"""
+        try:
+            from datetime import date
+            from catalog.views import get_participant_schedule
+            
+            league = League.objects.get(league_id=league_id)
+            participant = LeagueParticipant.objects.get(league=league, user=request.user)
+            
+            # Get all matchups for this participant
+            matchups = get_participant_schedule(participant)
+            
+            # Calculate current week if league has started
+            current_week = None
+            if league.start_date:
+                today = date.today()
+                if today >= league.start_date:
+                    days_since_start = (today - league.start_date).days
+                    current_week = min((days_since_start // 7) + 1, 7)  # Cap at 7 weeks
+                    # If it's past the end date, use week 7
+                    if league.end_date and today > league.end_date:
+                        current_week = 7
+            
+            # Format matchups for response
+            schedule_data = []
+            for matchup in matchups:
+                # Determine opponent
+                if matchup.participant1 == participant:
+                    opponent = matchup.participant2
+                    is_participant1 = True
+                else:
+                    opponent = matchup.participant1
+                    is_participant1 = False
+                
+                schedule_data.append({
+                    'week_number': matchup.week_number,
+                    'opponent_username': opponent.user.username,
+                    'opponent_id': opponent.id,
+                    'is_current_week': current_week is not None and matchup.week_number == current_week,
+                    'winner_id': matchup.winner.id if matchup.winner else None,
+                    'is_winner': matchup.winner == participant if matchup.winner else None,
+                })
+            
+            return Response({
+                'schedule': schedule_data,
+                'current_week': current_week,
+                'league_start_date': league.start_date.isoformat() if league.start_date else None,
+                'league_end_date': league.end_date.isoformat() if league.end_date else None,
+            }, status=200)
+            
+        except League.DoesNotExist:
+            return Response({'error': 'League not found'}, status=404)
+        except LeagueParticipant.DoesNotExist:
+            return Response({'error': 'You are not a participant in this league'}, status=404)
+        except Exception as e:
+            import traceback
+            print(f"Error getting participant schedule: {str(e)}")
+            print(traceback.format_exc())
+            return Response({'error': f'An error occurred: {str(e)}'}, status=500)
+
+
 class SetLeagueStartDateView(generics.UpdateAPIView):
     permission_classes = [IsAuthenticated]
 
@@ -316,28 +380,64 @@ class SetLeagueStartDateView(generics.UpdateAPIView):
                 return Response({'error': 'start_date is required'}, status=400)
             
             # Parse and set start date
-            from datetime import datetime
+            from datetime import datetime, date
             try:
                 start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
             except ValueError:
                 return Response({'error': 'Invalid date format. Use YYYY-MM-DD'}, status=400)
+            
+            # Validate that the date is a Monday (0 = Monday in Python's weekday())
+            if start_date_obj.weekday() != 0:
+                return Response({'error': 'Start date must be a Monday'}, status=400)
+            
+            # Calculate the next Monday (or later if today is Monday)
+            today = date.today()
+            today_weekday = today.weekday()  # 0 = Monday, 6 = Sunday
+            
+            if today_weekday == 6:  # Sunday
+                days_until_monday = 1
+            elif today_weekday == 0:  # Monday
+                days_until_monday = 7  # Next Monday
+            else:  # Tuesday through Saturday
+                days_until_monday = 8 - today_weekday
+            
+            next_monday = today + timedelta(days=days_until_monday)
+            
+            # Validate that the start date is the next Monday or later
+            if start_date_obj < next_monday:
+                return Response({
+                    'error': f'Start date must be the next Monday ({next_monday.strftime("%Y-%m-%d")}) or later'
+                }, status=400)
             
             # Set start and end dates
             league.start_date = start_date_obj
             league.end_date = start_date_obj + timedelta(weeks=7)
             league.save()
             
-            # Create league schedule if not already created
+            # Create league schedule - this is mandatory when setting start date
             from catalog.views import create_league_schedule
             try:
-                create_league_schedule(league)
+                created_matchups = create_league_schedule(league)
+                schedule_message = f'Schedule created successfully with {len(created_matchups)} matchups'
             except ValueError as e:
-                # Schedule might already exist or other issue, but continue
-                print(f"Warning: Could not create schedule: {str(e)}")
+                # This should not happen since we already validated 8 participants
+                # But if it does, return an error
+                return Response({
+                    'error': f'Failed to create league schedule: {str(e)}'
+                }, status=400)
+            except Exception as e:
+                # Any other error creating schedule
+                import traceback
+                print(f"Error creating league schedule: {str(e)}")
+                print(traceback.format_exc())
+                return Response({
+                    'error': f'Failed to create league schedule: {str(e)}'
+                }, status=500)
             
             serializer = LeaguesSerializer(league)
             return Response({
-                'message': 'Start date set successfully',
+                'message': 'Start date set successfully and league schedule created',
+                'schedule_info': schedule_message,
                 'league': serializer.data
             }, status=200)
             
