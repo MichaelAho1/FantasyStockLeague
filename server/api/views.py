@@ -84,7 +84,6 @@ class LeagueView(generics.ListCreateAPIView):
                 "losses":league_participant.losses,
                 "net_worth": getTotalStockValue(league_id, league_participant.user) + league_participant.current_balance,
                 "weekly_profit": total_profit,
-                # Still needs schedule
             }
             leagueUserData.append(data)
         return Response(leagueUserData)
