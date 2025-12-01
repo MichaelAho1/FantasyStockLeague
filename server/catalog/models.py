@@ -44,10 +44,6 @@ class League(models.Model):
         if self.start_date and self.end_date and self.end_date <= self.start_date:
             raise ValidationError("End date must be after start date")
 
-    def create_matchups(self):
-        """Create matchups for the league"""
-        from catalog.views import create_league_schedule
-        return create_league_schedule(self)
 
     @property
     def is_ongoing(self):
@@ -86,18 +82,12 @@ class UserLeagueStock(models.Model):
     league_participant = models.ForeignKey(LeagueParticipant, on_delete=models.CASCADE)
     stock = models.ForeignKey(Stock, on_delete=models.CASCADE)
  
-    price_at_start_of_week = models.DecimalField(decimal_places=2, default=0.00, max_digits=10)  # Resets Every Monday b4 market open
+    avg_price_per_share = models.DecimalField(decimal_places=2, default=0.00, max_digits=10)  # Average purchase price
     shares = models.DecimalField(decimal_places=2, default=0.01, max_digits=10)
 
     def __str__(self):
         return f"{self.league_participant} in {self.stock}"
     
-    @property
-    def weekly_profit(self):
-        """Calculate weekly profit based on price at start of week vs current price"""
-        if self.price_at_start_of_week == 0:
-            return 0
-        return (self.stock.current_price - self.price_at_start_of_week) * self.shares
     
     @property
     def total_profit(self):
@@ -105,20 +95,3 @@ class UserLeagueStock(models.Model):
         if self.avg_price_per_share == 0:
             return 0
         return (self.stock.current_price - self.avg_price_per_share) * self.shares
-
-class Matchup(models.Model):
-    """Model representing a matchup between two users in a league"""
-    league = models.ForeignKey(League, on_delete=models.CASCADE, related_name="matchups")
-    week_number = models.PositiveIntegerField()
-    participant1 = models.ForeignKey(LeagueParticipant, on_delete=models.CASCADE, related_name="matchups_as_p1")
-    participant2 = models.ForeignKey(LeagueParticipant, on_delete=models.CASCADE, related_name="matchups_as_p2")
-    start_of_week_net_worth1 = models.DecimalField(decimal_places=2, default=0.00, max_digits=10) #Calculated and stored every monday (9am b4 market open)
-    start_of_week_net_worth2 = models.DecimalField(decimal_places=2, default=0.00, max_digits=10) #Calculated and stored every monday (9am b4 market open)
-    winner = models.ForeignKey(LeagueParticipant, on_delete=models.SET_NULL, null=True, blank=True, related_name="matchup_wins")
-    
-    class Meta:
-        unique_together = ['league', 'week_number', 'participant1', 'participant2']
-        ordering = ['week_number']
-    
-    def __str__(self):
-        return f"Week {self.week_number}: {self.participant1.user.username} vs {self.participant2.user.username} ({self.league.name})"

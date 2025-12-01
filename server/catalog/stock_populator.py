@@ -1,7 +1,7 @@
 # Write code here to populate a stock model
 
 from django.forms import ValidationError
-from catalog.models import LeagueParticipant, Matchup, Stock, League, UserLeagueStock
+from catalog.models import LeagueParticipant, Stock, League, UserLeagueStock
 from catalog.views import get_daily_closing_price, get_current_price
 
 def create_new_stock(ticker: str, name: str, start_date: str):

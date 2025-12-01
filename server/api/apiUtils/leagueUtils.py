@@ -113,7 +113,7 @@ def get_owned_stocks_data(league_id, user):
                     "shares": float(stock.shares),
                     "current_price": float(stock.stock.current_price),
                     "start_price": float(stock.stock.start_price),
-                    "price_at_start_of_week": float(stock.price_at_start_of_week),
+                    "avg_price_per_share": float(stock.avg_price_per_share),
                     "ticker": stock.stock.ticker,
                     "name": stock.stock.name,
                 }

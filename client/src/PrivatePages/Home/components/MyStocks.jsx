@@ -48,7 +48,7 @@ function MyStocks() {
           name: stock.name,
           startPrice: parseFloat(stock.start_price) || 0,
           currentPrice: parseFloat(stock.current_price) || 0,
-          priceAtStartOfWeek: parseFloat(stock.price_at_start_of_week) || 0,
+          avgPricePerShare: parseFloat(stock.avg_price_per_share) || 0,
           shares: parseFloat(stock.shares) || 0
         }))
         setStocks(transformedStocks)
@@ -87,10 +87,10 @@ function MyStocks() {
 
   // Calculate totals
   const totalStockValue = stocks.reduce((sum, stock) => sum + (stock.currentPrice * stock.shares), 0)
-  // Calculate weekly profit using price_at_start_of_week
-  const totalWeeklyProfit = stocks.reduce((sum, stock) => {
-    if (stock.priceAtStartOfWeek > 0) {
-      return sum + ((stock.currentPrice - stock.priceAtStartOfWeek) * stock.shares)
+  // Calculate all-time profit using avg_price_per_share
+  const totalAllTimeProfit = stocks.reduce((sum, stock) => {
+    if (stock.avgPricePerShare > 0) {
+      return sum + ((stock.currentPrice - stock.avgPricePerShare) * stock.shares)
     }
     return sum
   }, 0)
@@ -127,19 +127,19 @@ function MyStocks() {
             <div className={styles.tableHeader}>
               <div>Ticker</div>
               <div>Stock Name</div>
-              <div>Week Start Price</div>
+              <div>Avg Purchase Price</div>
               <div>Current Price</div>
-              <div>Weekly Profit</div>
+              <div>All-Time Profit</div>
               <div>Shares</div>
             </div>
             <div className={styles.stockTableBody}>
               {currentStocks.map((stock, index) => {
-                // Calculate weekly profit using price_at_start_of_week
-                const weeklyProfit = stock.priceAtStartOfWeek > 0 
-                  ? (stock.currentPrice - stock.priceAtStartOfWeek) * stock.shares
+                // Calculate all-time profit using avg_price_per_share
+                const allTimeProfit = stock.avgPricePerShare > 0 
+                  ? (stock.currentPrice - stock.avgPricePerShare) * stock.shares
                   : 0
-                const profitPercent = stock.priceAtStartOfWeek > 0 
-                  ? ((stock.currentPrice - stock.priceAtStartOfWeek) / stock.priceAtStartOfWeek) * 100 
+                const profitPercent = stock.avgPricePerShare > 0 
+                  ? ((stock.currentPrice - stock.avgPricePerShare) / stock.avgPricePerShare) * 100 
                   : 0
                 
                 return (
@@ -147,12 +147,12 @@ function MyStocks() {
                     <div className={styles.ticker}>{stock.ticker}</div>
                     <div className={styles.stockName}>{stock.name}</div>
                     <div className={styles.startPrice}>
-                      {stock.priceAtStartOfWeek > 0 ? `$${stock.priceAtStartOfWeek.toFixed(2)}` : 'N/A'}
+                      {stock.avgPricePerShare > 0 ? `$${stock.avgPricePerShare.toFixed(2)}` : 'N/A'}
                     </div>
                     <div className={styles.currentPrice}>${stock.currentPrice.toFixed(2)}</div>
-                    <div className={`${styles.profit} ${weeklyProfit >= 0 ? styles.profitPositive : styles.profitNegative}`}>
-                      {stock.priceAtStartOfWeek > 0 ? (
-                        <>${weeklyProfit.toFixed(2)} ({profitPercent.toFixed(1)}%)</>
+                    <div className={`${styles.profit} ${allTimeProfit >= 0 ? styles.profitPositive : styles.profitNegative}`}>
+                      {stock.avgPricePerShare > 0 ? (
+                        <>${allTimeProfit.toFixed(2)} ({profitPercent.toFixed(1)}%)</>
                       ) : (
                         <>N/A</>
                       )}
@@ -184,9 +184,9 @@ function MyStocks() {
               <span className={styles.summaryValue}>${calculatedNetWorth.toFixed(2)}</span>
             </div>
             <div className={styles.summaryItem}>
-              <span className={styles.summaryLabel}>Total Weekly Profit:</span>
-              <span className={`${styles.summaryValue} ${totalWeeklyProfit >= 0 ? styles.profitPositive : styles.profitNegative}`}>
-                {totalWeeklyProfit >= 0 ? '+' : ''}${totalWeeklyProfit.toFixed(2)}
+              <span className={styles.summaryLabel}>Total All-Time Profit:</span>
+              <span className={`${styles.summaryValue} ${totalAllTimeProfit >= 0 ? styles.profitPositive : styles.profitNegative}`}>
+                {totalAllTimeProfit >= 0 ? '+' : ''}${totalAllTimeProfit.toFixed(2)}
               </span>
             </div>
           </div>

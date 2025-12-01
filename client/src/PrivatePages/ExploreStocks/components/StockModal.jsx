@@ -47,29 +47,10 @@ function StockModal({ stock, isOpen, onClose }) {
   const change = stock.change ?? (currentPrice - startPrice)
   const changePercent = stock.changePercent ?? (startPrice !== 0 ? (change / startPrice) * 100 : 0)
 
-  // Check if today is Saturday (6) or Sunday (0)
-  const isTradingDay = () => {
-    const today = new Date()
-    const dayOfWeek = today.getDay() // 0 = Sunday, 6 = Saturday
-    return dayOfWeek === 0 || dayOfWeek === 6
-  }
-
-  const tradingDayMessage = () => {
-    const today = new Date()
-    const dayOfWeek = today.getDay()
-    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-    return `Trading is only available on Saturday and Sunday. Today is ${dayNames[dayOfWeek]}.`
-  }
-
   const handleBuy = async (e) => {
     e.preventDefault()
     if (!leagueId) {
       setError('Please select a league first')
-      return
-    }
-
-    if (!isTradingDay()) {
-      setError('Trading is only available on Saturday and Sunday')
       return
     }
 
@@ -120,11 +101,6 @@ function StockModal({ stock, isOpen, onClose }) {
       return
     }
 
-    if (!isTradingDay()) {
-      setError('Trading is only available on Saturday and Sunday')
-      return
-    }
-
     const shares = parseFloat(sellShares)
     if (!shares || shares <= 0) {
       setError('Please enter a valid number of shares')
@@ -172,7 +148,6 @@ function StockModal({ stock, isOpen, onClose }) {
 
   const buyCost = buyShares ? (parseFloat(buyShares) * currentPrice).toFixed(2) : '0.00'
   const sellRevenue = sellShares ? (parseFloat(sellShares) * currentPrice).toFixed(2) : '0.00'
-  const canTrade = isTradingDay()
 
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
@@ -254,11 +229,6 @@ function StockModal({ stock, isOpen, onClose }) {
               </div>
             </div>
 
-            {!canTrade && (
-              <div className={styles.errorMessage} style={{ marginBottom: '20px', textAlign: 'center' }}>
-                {tradingDayMessage()}
-              </div>
-            )}
             {activeTab === 'buy' ? (
               <form onSubmit={handleBuy} className={styles.tradeForm}>
                 <div className={styles.formGroup}>
@@ -272,7 +242,6 @@ function StockModal({ stock, isOpen, onClose }) {
                     onChange={(e) => setBuyShares(e.target.value)}
                     placeholder="Enter shares"
                     required
-                    disabled={!canTrade}
                   />
                   <div className={styles.costInfo}>
                     Cost: ${buyCost}
@@ -283,7 +252,7 @@ function StockModal({ stock, isOpen, onClose }) {
                 <button 
                   type="submit" 
                   className={styles.buyButton}
-                  disabled={loading || !canTrade || !buyShares || parseFloat(buyShares) <= 0}
+                  disabled={loading || !buyShares || parseFloat(buyShares) <= 0}
                 >
                   {loading ? 'Processing...' : 'Buy Stock'}
                 </button>
@@ -302,7 +271,6 @@ function StockModal({ stock, isOpen, onClose }) {
                     onChange={(e) => setSellShares(e.target.value)}
                     placeholder={`Max: ${ownedShares.toFixed(2)}`}
                     required
-                    disabled={!canTrade}
                   />
                   <div className={styles.costInfo}>
                     Revenue: ${sellRevenue}
@@ -313,7 +281,7 @@ function StockModal({ stock, isOpen, onClose }) {
                 <button 
                   type="submit" 
                   className={styles.sellButton}
-                  disabled={loading || !canTrade || !sellShares || parseFloat(sellShares) <= 0 || parseFloat(sellShares) > ownedShares}
+                  disabled={loading || !sellShares || parseFloat(sellShares) <= 0 || parseFloat(sellShares) > ownedShares}
                 >
                   {loading ? 'Processing...' : 'Sell Stock'}
                 </button>

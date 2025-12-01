@@ -92,7 +92,6 @@ function LeagueLeaderboard() {
         <div className={styles.leaderboard}>
           <div className={styles.emptyState}>
             <p>No leaderboard data available yet.</p>
-            <p>The leaderboard will appear once matchups are completed.</p>
           </div>
         </div>
       </div>
@@ -109,7 +108,7 @@ function LeagueLeaderboard() {
               key={index}
               className={entry.is_current_user ? styles.userTeam : ''}
             >
-              {entry.username} | {entry.wins} - {entry.losses} | ${entry.net_worth.toLocaleString()}
+              {entry.username} | ${entry.net_worth.toLocaleString()}
             </li>
           ))}
         </ol>
