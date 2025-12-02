@@ -5,7 +5,7 @@ import requests
 
 # Grab api key - use Twelve Data API key
 load_dotenv()
-api_key = os.getenv("STOCK_API_KEY", "f99e95eaa5da47d0b01313a81c685c9a")
+api_key = os.getenv("STOCK_API_KEY", "f99e95eaa5da47d0b01313a81c685c9a") # NEED TO REMOVE HARD CODED  KEY
 
 def _require_api_key():
     if not api_key:

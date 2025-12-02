@@ -65,10 +65,6 @@ function MyStocks() {
     }
   }
 
-  useEffect(() => {
-    fetchOwnedStocks()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
   const fetchOwnedStocks = async () => {
     const leagueId = localStorage.getItem('selected_league_id')
     if (!leagueId) {
@@ -183,6 +179,25 @@ function MyStocks() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    fetchOwnedStocks()
+    
+    // Listen for stock purchase/sale events to refresh immediately
+    const handleStocksUpdated = (event) => {
+      const leagueId = localStorage.getItem('selected_league_id')
+      if (event.detail && event.detail.leagueId === leagueId) {
+        console.log('Stocks updated event received, refreshing MyStocks...')
+        fetchOwnedStocks()
+      }
+    }
+    
+    window.addEventListener('stocksUpdated', handleStocksUpdated)
+    
+    return () => {
+      window.removeEventListener('stocksUpdated', handleStocksUpdated)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Calculate totals
   const totalStockValue = stocks.reduce((sum, stock) => sum + (stock.currentPrice * stock.shares), 0)

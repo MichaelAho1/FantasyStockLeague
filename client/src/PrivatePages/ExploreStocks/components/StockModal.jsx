@@ -84,6 +84,17 @@ function StockModal({ stock, isOpen, onClose }) {
         setSuccess(data.message || 'Stock purchased successfully')
         setBuyShares('')
         await fetchStockInfo() // Refresh balance and shares
+        
+        // Invalidate owned stocks cache and notify MyStocks component
+        if (leagueId) {
+          const cacheKey = `owned_stocks_cache_${leagueId}`
+          const timestampKey = `owned_stocks_cache_timestamp_${leagueId}`
+          localStorage.removeItem(cacheKey)
+          localStorage.removeItem(timestampKey)
+          
+          // Dispatch custom event to notify MyStocks component
+          window.dispatchEvent(new CustomEvent('stocksUpdated', { detail: { leagueId } }))
+        }
       } else {
         setError(data.error || 'Failed to buy stock')
       }
@@ -136,6 +147,17 @@ function StockModal({ stock, isOpen, onClose }) {
         setSuccess(data.message || 'Stock sold successfully')
         setSellShares('')
         await fetchStockInfo() // Refresh balance and shares
+        
+        // Invalidate owned stocks cache and notify MyStocks component
+        if (leagueId) {
+          const cacheKey = `owned_stocks_cache_${leagueId}`
+          const timestampKey = `owned_stocks_cache_timestamp_${leagueId}`
+          localStorage.removeItem(cacheKey)
+          localStorage.removeItem(timestampKey)
+          
+          // Dispatch custom event to notify MyStocks component
+          window.dispatchEvent(new CustomEvent('stocksUpdated', { detail: { leagueId } }))
+        }
       } else {
         setError(data.error || 'Failed to sell stock')
       }
