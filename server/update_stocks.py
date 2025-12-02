@@ -12,14 +12,13 @@ from asyncio import sleep
 from datetime import datetime, timedelta
 from django.utils import timezone
 from catalog.stock_populator import update_stock_prices
-from catalog.stock_utils import _can_make_api_call
 
 
 def update_stocks(force=False):
     """Grabs stocks from database and updates them.
     By default this function keeps the original behavior of updating only during market windows
     and at 5-minute intervals. If `force=True` it will always perform an update.
-
+    
     Returns True if updated and False if not.
     """
     
@@ -28,11 +27,6 @@ def update_stocks(force=False):
     current_time = current_datetime.time()
     stocks = Stock.objects.all() # Grab all stocks from the database
     stock_list = list(stocks)
-
-    # Check 30-minute API cooldown first (applies even to forced updates)
-    if not _can_make_api_call():
-        print(f"API call cooldown active (30 minutes). Skipping update, using cached prices.")
-        return False
 
     # If caller requested a forced update, do it and return
     if force:
@@ -63,7 +57,6 @@ def update_stocks(force=False):
     last_update_interval = (last_update_time.minute // 5) * 5
      # Special case: Market just closed (4:01 PM), do final update
     if market_just_closed and last_update_time.hour < 16:
-        print(f"Market closed, final update")
         update_stock_prices(stock_list)
         return True
     
@@ -72,5 +65,4 @@ def update_stocks(force=False):
         update_stock_prices(stock_list)
         return True
     else:
-        print(f"Already updated this interval, skipping instead (last: {last_update_time})")
         return False

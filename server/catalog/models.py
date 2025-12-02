@@ -15,7 +15,9 @@ class Stock(models.Model):
     # Ticker as primary key
     ticker = models.CharField(primary_key=True, max_length=10)
     name = models.CharField(max_length=200)
-    start_price = models.DecimalField(max_digits=10, decimal_places=2)
+    start_price = models.DecimalField(max_digits=10, decimal_places=2, help_text="Original price when stock was first added")
+    day_start_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Price at the start of current trading day (last closing price)")
+    day_start_date = models.DateField(null=True, blank=True, help_text="Date when day_start_price was last updated")
     current_price = models.DecimalField(max_digits=10, decimal_places=2)
     last_updated = models.DateTimeField(auto_now=True)
     last_api_call_time = models.DateTimeField(null=True, blank=True, help_text="Timestamp of the last API call to Twelve Data")
@@ -26,6 +28,27 @@ class Stock(models.Model):
     @property
     def profit(self):
         return (self.current_price - self.start_price) * self.shares
+
+
+class ApiCallTracker(models.Model):
+    """Singleton model to track API call limits (max 5 calls per 30 minutes)."""
+    id = models.IntegerField(primary_key=True, default=1, editable=False)
+    api_call_count = models.IntegerField(default=0, help_text="Number of API calls in current window")
+    window_start_time = models.DateTimeField(null=True, blank=True, help_text="Start time of current 30-minute window")
+    last_api_call_time = models.DateTimeField(null=True, blank=True, help_text="Timestamp of the last API call")
+    
+    class Meta:
+        verbose_name = "API Call Tracker"
+        verbose_name_plural = "API Call Tracker"
+    
+    def __str__(self):
+        return f"API Calls: {self.api_call_count}/5 (Window started: {self.window_start_time})"
+    
+    @classmethod
+    def get_instance(cls):
+        """Get or create the singleton instance."""
+        instance, created = cls.objects.get_or_create(id=1)
+        return instance
     
     
 class League(models.Model):

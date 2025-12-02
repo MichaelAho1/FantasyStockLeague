@@ -110,9 +110,11 @@ function MyStocks() {
       
       setError('')
       setLoading(false)
+      // Cache is valid, don't fetch fresh data
+      return
     }
 
-    // Always fetch fresh data in the background
+    // Only fetch if cache is expired or doesn't exist
     try {
       console.log("Fetching fresh owned stocks data...")
       const response = await fetch(`http://localhost:8000/api/owned-stocks/${leagueId}/`, {
@@ -166,18 +168,12 @@ function MyStocks() {
       } else {
         const errorData = await response.json().catch(() => ({}))
         setError(errorData.error || errorData.detail || 'Failed to load stocks')
-        // If fetch fails and we don't have cached data, show error
-        if (!cachedData) {
-          setStocks([])
-        }
+        setStocks([])
       }
     } catch (err) {
       console.error('Error fetching owned stocks:', err)
-      // If fetch fails and we don't have cached data, show error
-      if (!cachedData) {
-        setError('Network error. Please try again.')
-        setStocks([])
-      }
+      setError('Network error. Please try again.')
+      setStocks([])
     } finally {
       setLoading(false)
     }

@@ -108,9 +108,11 @@ function ExploreStocks() {
         const transformedCached = transformStockData(cachedStocks)
         setAllStocks(transformedCached)
         setIsLoading(false)
+        // Cache is valid, don't fetch fresh data
+        return
       }
       
-      // Always fetch fresh data in the background
+      // Only fetch if cache is expired or doesn't exist
       console.log("Fetching fresh stocks data...")
       try {
         const stocks = await getStocks()
@@ -125,16 +127,12 @@ function ExploreStocks() {
           
           // Cache the fresh data
           setCachedStocks(stocks)
-        } else if (!cachedStocks || cachedStocks.length === 0) {
-          // Only show empty if we don't have cached data either
+        } else {
           setAllStocks([])
         }
       } catch (error) {
         console.error("Error fetching fresh stocks:", error)
-        // If fetch fails and we have cached data, keep using it
-        if (!cachedStocks || cachedStocks.length === 0) {
-          setAllStocks([])
-        }
+        setAllStocks([])
       } finally {
         setIsLoading(false)
       }

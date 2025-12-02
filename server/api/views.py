@@ -24,34 +24,19 @@ class ViewAllStocks(generics.ListCreateAPIView):
     permission_classes = [AllowAny]
 
     def get(self, request, format=None):
-        try:
-            # Get stocks from database first (before any updates)
-            stock_queryset = Stock.objects.all()
-            
-            # If no stocks exist, return empty list immediately
-            if not stock_queryset.exists():
-                print("No stocks found in database. Run populate_stocks.py to add stocks.")
-                return Response([], status=200)
-            
-            # Try to update stock prices in the background (don't block the response)
-            try:
-                # Force an update when the frontend requests the stocks list so the page shows
-                # the freshest data regardless of market-open checks.
-                update_stocks_module.update_stocks(force=True)
-            except Exception as e:
-                # Don't fail the request if update logic errors — just log and continue
-                # We'll return the existing data from the database
-                import traceback
-                print("Error while attempting to update stocks (returning existing data):")
-                print(traceback.format_exc())
-        except BrokenPipeError:
-            # Client disconnected, ignore this error
+        # Get stocks from database first (before any updates)
+        stock_queryset = Stock.objects.all()
+        
+        # If no stocks exist, return empty list immediately
+        if not stock_queryset.exists():
             return Response([], status=200)
-        except Exception as e:
-            # Handle any other connection errors gracefully
-            import traceback
-            print(f"Connection error in ViewAllStocks: {e}")
-            # Still try to return data if possible
+        
+        # Don't force updates on every request - frontend handles caching
+        # Only update if it's been a while since last update (let update_stocks handle timing)
+        # try:
+        #     update_stocks_module.update_stocks(force=False)
+        # except Exception:
+        #     pass
 
         # Helper to find the most recent close (tries back up to 7 days)
         def get_most_recent_close(ticker):
@@ -67,8 +52,6 @@ class ViewAllStocks(generics.ListCreateAPIView):
         stock_queryset = Stock.objects.all()
         stocks = []
         
-        print(f"Returning {stock_queryset.count()} stocks to frontend")
-        
         for stock in stock_queryset:
             try:
                 # Ensure we have valid numeric values
@@ -78,28 +61,38 @@ class ViewAllStocks(generics.ListCreateAPIView):
                 current = 0.0
                 start = 0.0
 
-            # Try to get previous close for daily change calculation
-            prev_close = None
-            try:
-                prev_close = get_most_recent_close(stock.ticker)
-            except Exception:
-                pass
-
-            if prev_close is None:
-                daily_change = None
-                daily_change_percent = None
+            # Get day_start_price from database (updated daily) or calculate from previous close
+            day_start_price = None
+            if stock.day_start_price:
+                day_start_price = float(stock.day_start_price)
             else:
-                daily_change = current - prev_close
+                # Fallback: try to get previous close
                 try:
-                    daily_change_percent = (daily_change / prev_close) * 100 if prev_close != 0 else None
+                    day_start_price = get_most_recent_close(stock.ticker)
+                except Exception:
+                    pass
+                
+                # Final fallback: use start_price
+                if day_start_price is None:
+                    day_start_price = start
+
+            # Calculate daily change based on day_start_price
+            if day_start_price is not None and day_start_price > 0:
+                daily_change = current - day_start_price
+                try:
+                    daily_change_percent = (daily_change / day_start_price) * 100 if day_start_price != 0 else None
                 except Exception:
                     daily_change_percent = None
+            else:
+                daily_change = None
+                daily_change_percent = None
 
             data = {
                 "ticker": stock.ticker,
                 "name": stock.name,
-                "start_price": start,  # Already a float
-                "current_price": current,  # Already a float
+                "start_price": start,  # Original start price when stock was created
+                "current_price": current,  # Current price
+                "day_start_price": day_start_price,  # Price at start of current trading day (from DB or calculated)
                 "daily_change": daily_change,
                 "daily_change_percent": daily_change_percent,
             }

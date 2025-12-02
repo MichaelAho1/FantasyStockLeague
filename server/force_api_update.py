@@ -7,7 +7,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'fantasyStockLeauge.settings')
 django.setup()
 
 from catalog.models import Stock
-from catalog.stock_utils import get_current_stock_price, _update_last_api_call_time, _can_make_api_call
+from catalog.stock_utils import get_current_stock_price
 from django.utils import timezone
 
 print("=" * 60)
@@ -26,17 +26,6 @@ print("\nCurrent last_api_call_time values:")
 for stock in stocks[:5]:
     print(f"  {stock.ticker}: {stock.last_api_call_time}")
 
-# Check if we can make API call
-can_call = _can_make_api_call()
-print(f"\nCan make API call (30 min cooldown check): {can_call}")
-
-if not can_call:
-    last_call = Stock.objects.exclude(last_api_call_time__isnull=True).order_by('-last_api_call_time').first()
-    if last_call:
-        time_since = timezone.now() - last_call.last_api_call_time
-        print(f"Last API call was {time_since.total_seconds() / 60:.1f} minutes ago")
-        print(f"Need to wait {30 - (time_since.total_seconds() / 60):.1f} more minutes")
-
 # Force update by manually calling the API for one stock
 print("\n" + "-" * 60)
 print("Forcing API call for first stock...")
@@ -44,16 +33,18 @@ first_stock = stocks.first()
 print(f"Stock: {first_stock.ticker}")
 
 try:
-    # This will make an API call and update last_api_call_time
-    price = get_current_stock_price(first_stock.ticker, use_cache=False)
+    # This will make an API call
+    price = get_current_stock_price(first_stock.ticker)
     print(f"Got price: ${price}")
     
-    # Also manually update all stocks
-    _update_last_api_call_time()
+    # Update the stock's current_price and last_api_call_time
+    first_stock.current_price = price
+    first_stock.last_api_call_time = timezone.now()
+    first_stock.save()
     
     print("\nAfter API call:")
-    for stock in Stock.objects.all()[:5]:
-        print(f"  {stock.ticker}: last_api_call_time = {stock.last_api_call_time}")
+    updated_stock = Stock.objects.get(ticker=first_stock.ticker)
+    print(f"  {updated_stock.ticker}: last_api_call_time = {updated_stock.last_api_call_time}, current_price = ${updated_stock.current_price}")
         
 except Exception as e:
     print(f"\nERROR: {e}")
