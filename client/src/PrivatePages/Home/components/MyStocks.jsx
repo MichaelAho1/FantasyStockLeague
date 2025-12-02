@@ -87,7 +87,12 @@ function MyStocks() {
     // Try to load from cache first for instant display
     const cachedData = getCachedOwnedStocks()
     if (cachedData) {
-      console.log("Loading owned stocks from cache")
+      const leagueId = localStorage.getItem('selected_league_id')
+      const timestampKey = `${OWNED_STOCKS_CACHE_TIMESTAMP_KEY}_${leagueId}`
+      const cachedTimestamp = localStorage.getItem(timestampKey)
+      const age = cachedTimestamp ? Math.round((Date.now() - parseInt(cachedTimestamp, 10)) / 1000) : 0
+      const remainingTime = cachedTimestamp ? Math.round((CACHE_DURATION - (Date.now() - parseInt(cachedTimestamp, 10))) / 1000) : 0
+      console.log(`Using cached owned stocks (${age}s old, ${remainingTime}s remaining). Not calling API.`)
       const stocksData = cachedData.stocks || cachedData
       const transformedStocks = stocksData.map(stock => ({
         ticker: stock.ticker,
@@ -116,7 +121,7 @@ function MyStocks() {
 
     // Only fetch if cache is expired or doesn't exist
     try {
-      console.log("Fetching fresh owned stocks data...")
+      console.log("Cache expired or missing. Fetching fresh owned stocks data from API...")
       const response = await fetch(`http://localhost:8000/api/owned-stocks/${leagueId}/`, {
         method: 'GET',
         headers: {

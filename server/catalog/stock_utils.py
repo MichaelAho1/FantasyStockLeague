@@ -19,6 +19,7 @@ def get_stock_closing_price(ticker: str, date: str):
     
     # Twelve Data API endpoint for time series - get last 30 days and find the date
     url = f'https://api.twelvedata.com/time_series?symbol={ticker}&interval=1day&outputsize=30&apikey={api_key}'
+    print(f"[API CALL] Fetching closing price for {ticker} on {date} using API key: {api_key[:10]}...")
     
     try:
         r = requests.get(url, timeout=10)
@@ -79,51 +80,73 @@ def get_stock_closing_price(ticker: str, date: str):
     raise RuntimeError(f"Could not retrieve closing price for {ticker} on {date}. Response: {data}")
 
 
-def get_current_stock_price(ticker: str):
-    """Returns the current price of a stock as a float."""
+def get_stock_prices(ticker: str):
+    """Returns both yesterday's closing price and current price in a single API call.
+    Returns a tuple: (yesterday_closing_price, current_price)
+    Uses time_series endpoint to get both values efficiently."""
     _require_api_key()
     
-    # Make API call
-    url = f'https://api.twelvedata.com/price?symbol={ticker}&apikey={api_key}'
+    # Single API call to get time series data (last 2 days)
+    # This gives us yesterday's closing price and today's data if available
+    url = f'https://api.twelvedata.com/time_series?symbol={ticker}&interval=1day&outputsize=2&apikey={api_key}'
+    print(f"[API CALL] Fetching prices for {ticker} using API key: {api_key[:10]}...")
     
     try:
         r = requests.get(url, timeout=10)
         r.raise_for_status()
         data = r.json()
     except requests.RequestException as e:
-        raise RuntimeError(f"Network error fetching price for {ticker}: {e}")
+        raise RuntimeError(f"Network error fetching prices for {ticker}: {e}")
     
     # Check for API errors
     if 'status' in data and data['status'] == 'error':
         error_msg = data.get('message', 'Unknown error')
         raise RuntimeError(f"Twelve Data API error: {error_msg}")
     
-    # Check if we have price data
-    if 'price' in data:
-        try:
-            price = float(data['price'])
-            return price
-        except (ValueError, TypeError):
-            pass
-    
-    # Fallback to time series if price endpoint doesn't work
+    # Get current price from price endpoint (real-time)
     try:
-        url_ts = f'https://api.twelvedata.com/time_series?symbol={ticker}&interval=1day&outputsize=1&apikey={api_key}'
-        r_ts = requests.get(url_ts, timeout=10)
-        r_ts.raise_for_status()
-        data_ts = r_ts.json()
+        price_url = f'https://api.twelvedata.com/price?symbol={ticker}&apikey={api_key}'
+        price_r = requests.get(price_url, timeout=10)
+        price_r.raise_for_status()
+        price_data = price_r.json()
         
-        if 'status' in data_ts and data_ts['status'] == 'error':
-            error_msg = data_ts.get('message', 'Unknown error')
-            raise RuntimeError(f"Twelve Data API error: {error_msg}")
-        
-        if 'values' in data_ts and len(data_ts['values']) > 0:
-            price = float(data_ts['values'][0]['close'])
-            return price
+        if 'status' not in price_data or price_data['status'] != 'error':
+            if 'price' in price_data:
+                current_price = float(price_data['price'])
+            else:
+                current_price = None
+        else:
+            current_price = None
     except Exception:
-        pass
+        current_price = None
     
-    raise RuntimeError(f"Could not retrieve current price for {ticker}. Response: {data}")
+    # Parse time series data
+    if 'values' not in data or len(data['values']) == 0:
+        raise RuntimeError(f"No time series data available for {ticker}")
+    
+    values = data['values']
+    
+    # Get yesterday's closing price (index 1, or index 0 if only one day available)
+    if len(values) >= 2:
+        # Index 0 = most recent (today if market closed, yesterday if market open)
+        # Index 1 = previous day (yesterday)
+        yesterday_close = float(values[1]['close'])
+    else:
+        # Only one day available, use it as yesterday
+        yesterday_close = float(values[0]['close'])
+    
+    # If we didn't get current price from price endpoint, use most recent close from time series
+    if current_price is None:
+        current_price = float(values[0]['close'])
+    
+    return (yesterday_close, current_price)
+
+
+def get_current_stock_price(ticker: str):
+    """Returns the current price of a stock as a float.
+    Uses get_stock_prices internally for efficiency."""
+    _, current_price = get_stock_prices(ticker)
+    return current_price
 
 
 def get_profit_float(ticker: str, start_date: str):

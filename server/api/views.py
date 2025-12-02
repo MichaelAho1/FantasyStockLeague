@@ -31,22 +31,13 @@ class ViewAllStocks(generics.ListCreateAPIView):
         if not stock_queryset.exists():
             return Response([], status=200)
         
-        # Don't force updates on every request - frontend handles caching
-        # Only update if it's been a while since last update (let update_stocks handle timing)
-        # try:
-        #     update_stocks_module.update_stocks(force=False)
-        # except Exception:
-        #     pass
-
-        # Helper to find the most recent close (tries back up to 7 days)
-        def get_most_recent_close(ticker):
-            for delta in range(1, 8):
-                try_date = (date.today() - timedelta(days=delta)).strftime('%Y-%m-%d')
-                try:
-                    return float(get_daily_closing_price(ticker, try_date))
-                except Exception:
-                    continue
-            return None
+        # Always update stocks before returning data
+        try:
+            update_stocks_module.update_stocks(force=True)
+        except Exception:
+            # Don't fail the request if update logic errors — just log and continue
+            # We'll return the existing data from the database
+            pass
 
         # Refresh the queryset to get updated prices
         stock_queryset = Stock.objects.all()
@@ -61,26 +52,11 @@ class ViewAllStocks(generics.ListCreateAPIView):
                 current = 0.0
                 start = 0.0
 
-            # Get day_start_price from database (updated daily) or calculate from previous close
-            day_start_price = None
-            if stock.day_start_price:
-                day_start_price = float(stock.day_start_price)
-            else:
-                # Fallback: try to get previous close
+            # Calculate daily change based on start_price (which is yesterday's closing price)
+            if start > 0:
+                daily_change = current - start
                 try:
-                    day_start_price = get_most_recent_close(stock.ticker)
-                except Exception:
-                    pass
-                
-                # Final fallback: use start_price
-                if day_start_price is None:
-                    day_start_price = start
-
-            # Calculate daily change based on day_start_price
-            if day_start_price is not None and day_start_price > 0:
-                daily_change = current - day_start_price
-                try:
-                    daily_change_percent = (daily_change / day_start_price) * 100 if day_start_price != 0 else None
+                    daily_change_percent = (daily_change / start) * 100 if start != 0 else None
                 except Exception:
                     daily_change_percent = None
             else:
@@ -90,9 +66,8 @@ class ViewAllStocks(generics.ListCreateAPIView):
             data = {
                 "ticker": stock.ticker,
                 "name": stock.name,
-                "start_price": start,  # Original start price when stock was created
+                "start_price": start,  # Yesterday's closing price (updated daily)
                 "current_price": current,  # Current price
-                "day_start_price": day_start_price,  # Price at start of current trading day (from DB or calculated)
                 "daily_change": daily_change,
                 "daily_change_percent": daily_change_percent,
             }

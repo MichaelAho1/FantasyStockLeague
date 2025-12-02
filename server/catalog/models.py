@@ -15,12 +15,9 @@ class Stock(models.Model):
     # Ticker as primary key
     ticker = models.CharField(primary_key=True, max_length=10)
     name = models.CharField(max_length=200)
-    start_price = models.DecimalField(max_digits=10, decimal_places=2, help_text="Original price when stock was first added")
-    day_start_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Price at the start of current trading day (last closing price)")
-    day_start_date = models.DateField(null=True, blank=True, help_text="Date when day_start_price was last updated")
+    start_price = models.DecimalField(max_digits=10, decimal_places=2, help_text="Yesterday's closing price (updated daily)")
     current_price = models.DecimalField(max_digits=10, decimal_places=2)
     last_updated = models.DateTimeField(auto_now=True)
-    last_api_call_time = models.DateTimeField(null=True, blank=True, help_text="Timestamp of the last API call to Twelve Data")
     
     def __str__(self):
         return f"{self.ticker} - {self.name}"

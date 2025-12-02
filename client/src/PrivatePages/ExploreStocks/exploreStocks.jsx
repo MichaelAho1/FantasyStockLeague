@@ -104,7 +104,10 @@ function ExploreStocks() {
       // Try to load from cache first for instant display
       const cachedStocks = getCachedStocks()
       if (cachedStocks && cachedStocks.length > 0) {
-        console.log("Loading from cache:", cachedStocks.length, "stocks")
+        const cachedTimestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY)
+        const age = cachedTimestamp ? Math.round((Date.now() - parseInt(cachedTimestamp, 10)) / 1000) : 0
+        const remainingTime = Math.round((CACHE_DURATION - (Date.now() - parseInt(cachedTimestamp, 10))) / 1000)
+        console.log(`Using cached stocks (${age}s old, ${remainingTime}s remaining). Not calling API.`)
         const transformedCached = transformStockData(cachedStocks)
         setAllStocks(transformedCached)
         setIsLoading(false)
@@ -113,7 +116,7 @@ function ExploreStocks() {
       }
       
       // Only fetch if cache is expired or doesn't exist
-      console.log("Fetching fresh stocks data...")
+      console.log("Cache expired or missing. Fetching fresh stocks data from API...")
       try {
         const stocks = await getStocks()
         console.log("Raw stocks received:", stocks.length)
