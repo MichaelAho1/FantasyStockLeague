@@ -201,16 +201,12 @@ function MyStocks() {
 
   // Calculate totals
   const totalStockValue = stocks.reduce((sum, stock) => sum + (stock.currentPrice * stock.shares), 0)
-  // Calculate all-time profit using avg_price_per_share
-  const totalAllTimeProfit = stocks.reduce((sum, stock) => {
-    if (stock.avgPricePerShare > 0) {
-      return sum + ((stock.currentPrice - stock.avgPricePerShare) * stock.shares)
-    }
-    return sum
-  }, 0)
   
   // Net worth = stock value + current balance
   const calculatedNetWorth = netWorth > 0 ? netWorth : (totalStockValue + currentBalance)
+  
+  // Calculate all-time profit: net worth - starting balance (10000)
+  const totalAllTimeProfit = calculatedNetWorth - 10000
 
   // Calculate pagination
   const totalPages = Math.ceil(stocks.length / itemsPerPage)

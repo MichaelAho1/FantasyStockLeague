@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Link } from 'react-router-dom';
+import UsernameModal from './UsernameModal.jsx';
 import styles from './navBar.module.css';
 
 function navBar() {
@@ -8,6 +9,23 @@ function navBar() {
   const location = useLocation()
   const selectedLeagueId = localStorage.getItem('selected_league_id')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [username, setUsername] = useState(localStorage.getItem('username') || '')
+  const [isUsernameModalOpen, setIsUsernameModalOpen] = useState(false)
+
+  useEffect(() => {
+    // Listen for username updates
+    const handleUsernameUpdated = (event) => {
+      if (event.detail && event.detail.username) {
+        setUsername(event.detail.username)
+      }
+    }
+    
+    window.addEventListener('usernameUpdated', handleUsernameUpdated)
+    
+    return () => {
+      window.removeEventListener('usernameUpdated', handleUsernameUpdated)
+    }
+  }, [])
 
   const handleLogout = () => {
     const confirmed = window.confirm('Are you sure you want to logout?')
@@ -78,6 +96,20 @@ function navBar() {
               Explore Stocks
             </Link>
           </p>
+          {username && (
+            <p className={styles.navbarItem}>
+              <button 
+                className={styles.usernameButton} 
+                onClick={() => {
+                  setIsUsernameModalOpen(true)
+                  setIsMobileMenuOpen(false)
+                }}
+                title="Click to change username"
+              >
+                {username}
+              </button>
+            </p>
+          )}
           <p className={styles.navbarItem}>
             <button className={styles.navbarButton} onClick={handleLogout}>
               Logout
@@ -85,6 +117,10 @@ function navBar() {
           </p>
         </div>
       </nav>
+      <UsernameModal 
+        isOpen={isUsernameModalOpen} 
+        onClose={() => setIsUsernameModalOpen(false)} 
+      />
     </>
   )
 }

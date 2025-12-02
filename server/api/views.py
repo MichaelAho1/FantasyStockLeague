@@ -2,7 +2,7 @@ from datetime import timedelta
 from decimal import Decimal
 from django.contrib.auth.models import User
 from rest_framework import generics
-from api.serializer import LeaguesSerializer, StockSerializer, UserSerializer
+from api.serializer import LeaguesSerializer, StockSerializer, UserSerializer, UpdateUsernameSerializer
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from catalog.models import LeagueParticipant, Stock, UserLeagueStock, League
@@ -335,6 +335,41 @@ class DeleteLeagueView(generics.DestroyAPIView):
         except Exception as e:
             import traceback
             print(f"Error deleting league: {str(e)}")
+            print(traceback.format_exc())
+            return Response({'error': f'An error occurred: {str(e)}'}, status=500)
+
+
+class UpdateUsernameView(generics.UpdateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = UpdateUsernameSerializer
+
+    def get_object(self):
+        return self.request.user
+
+    def put(self, request, *args, **kwargs):
+        """Update the current user's username"""
+        try:
+            user = self.get_object()
+            serializer = self.get_serializer(user, data=request.data, partial=False)
+            
+            if serializer.is_valid():
+                old_username = user.username
+                serializer.save()
+                new_username = user.username
+                
+                return Response({
+                    'message': 'Username updated successfully',
+                    'username': new_username
+                }, status=200)
+            else:
+                return Response({
+                    'error': 'Invalid data',
+                    'errors': serializer.errors
+                }, status=400)
+                
+        except Exception as e:
+            import traceback
+            print(f"Error updating username: {str(e)}")
             print(traceback.format_exc())
             return Response({'error': f'An error occurred: {str(e)}'}, status=500)
 
