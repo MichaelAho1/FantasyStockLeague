@@ -59,7 +59,7 @@ class League(models.Model):
         return self.participants.count()
     
     def can_set_start_date(self):
-        """Check if league has 8 participants and can set start date"""
+        """Check if league has 8 participants and can set start date f"""
         return self.participant_count >= 8
 
 
