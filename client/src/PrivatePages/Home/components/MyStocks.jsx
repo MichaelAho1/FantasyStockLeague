@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react'
 import Pagination from '../../../components/Pagination.jsx'
 import styles from './MyStocks.module.css'
 
+const OWNED_STOCKS_CACHE_KEY = 'owned_stocks_cache'
+const OWNED_STOCKS_CACHE_TIMESTAMP_KEY = 'owned_stocks_cache_timestamp'
+const CACHE_DURATION = 30 * 60 * 1000 // 30 minutes in milliseconds (matches backend API cooldown)
+
 function MyStocks() {
   const [stocks, setStocks] = useState([])
   const [loading, setLoading] = useState(true)
@@ -10,6 +14,56 @@ function MyStocks() {
   const [netWorth, setNetWorth] = useState(0)
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 9
+
+  // Cache utility functions
+  const getCachedOwnedStocks = () => {
+    try {
+      const leagueId = localStorage.getItem('selected_league_id')
+      if (!leagueId) return null
+      
+      const cacheKey = `${OWNED_STOCKS_CACHE_KEY}_${leagueId}`
+      const timestampKey = `${OWNED_STOCKS_CACHE_TIMESTAMP_KEY}_${leagueId}`
+      
+      const cachedData = localStorage.getItem(cacheKey)
+      const cachedTimestamp = localStorage.getItem(timestampKey)
+      
+      if (cachedData && cachedTimestamp) {
+        const timestamp = parseInt(cachedTimestamp, 10)
+        const now = Date.now()
+        const age = now - timestamp
+        
+        // Check if cache is still valid (less than CACHE_DURATION old)
+        if (age < CACHE_DURATION) {
+          console.log(`Using cached owned stocks data (${Math.round(age / 1000)}s old)`)
+          return JSON.parse(cachedData)
+        } else {
+          console.log('Cache expired, fetching fresh data')
+          // Clear expired cache
+          localStorage.removeItem(cacheKey)
+          localStorage.removeItem(timestampKey)
+        }
+      }
+    } catch (error) {
+      console.error('Error reading cache:', error)
+    }
+    return null
+  }
+
+  const setCachedOwnedStocks = (data) => {
+    try {
+      const leagueId = localStorage.getItem('selected_league_id')
+      if (!leagueId) return
+      
+      const cacheKey = `${OWNED_STOCKS_CACHE_KEY}_${leagueId}`
+      const timestampKey = `${OWNED_STOCKS_CACHE_TIMESTAMP_KEY}_${leagueId}`
+      
+      localStorage.setItem(cacheKey, JSON.stringify(data))
+      localStorage.setItem(timestampKey, Date.now().toString())
+      console.log('Owned stocks data cached')
+    } catch (error) {
+      console.error('Error caching owned stocks:', error)
+    }
+  }
 
   useEffect(() => {
     fetchOwnedStocks()
@@ -30,7 +84,37 @@ function MyStocks() {
       return
     }
 
+    // Try to load from cache first for instant display
+    const cachedData = getCachedOwnedStocks()
+    if (cachedData) {
+      console.log("Loading owned stocks from cache")
+      const stocksData = cachedData.stocks || cachedData
+      const transformedStocks = stocksData.map(stock => ({
+        ticker: stock.ticker,
+        name: stock.name,
+        startPrice: parseFloat(stock.start_price) || 0,
+        currentPrice: parseFloat(stock.current_price) || 0,
+        avgPricePerShare: parseFloat(stock.avg_price_per_share) || 0,
+        shares: parseFloat(stock.shares) || 0
+      }))
+      setStocks(transformedStocks)
+      
+      if (cachedData.current_balance !== undefined) {
+        setCurrentBalance(cachedData.current_balance || 0)
+      }
+      if (cachedData.net_worth !== undefined) {
+        setNetWorth(cachedData.net_worth || 0)
+      } else if (cachedData.total_stock_value !== undefined && cachedData.current_balance !== undefined) {
+        setNetWorth((cachedData.total_stock_value || 0) + (cachedData.current_balance || 0))
+      }
+      
+      setError('')
+      setLoading(false)
+    }
+
+    // Always fetch fresh data in the background
     try {
+      console.log("Fetching fresh owned stocks data...")
       const response = await fetch(`http://localhost:8000/api/owned-stocks/${leagueId}/`, {
         method: 'GET',
         headers: {
@@ -63,23 +147,37 @@ function MyStocks() {
           setNetWorth((data.total_stock_value || 0) + (data.current_balance || 0))
         }
         
+        // Cache the fresh data
+        setCachedOwnedStocks(data)
+        
         setError('')
       } else if (response.status === 401) {
         // Token expired or invalid
         setError('Your session has expired. Please log in again.')
         localStorage.removeItem('access_token')
         localStorage.removeItem('selected_league_id')
+        // Clear cache on logout
+        const cacheKey = `${OWNED_STOCKS_CACHE_KEY}_${leagueId}`
+        const timestampKey = `${OWNED_STOCKS_CACHE_TIMESTAMP_KEY}_${leagueId}`
+        localStorage.removeItem(cacheKey)
+        localStorage.removeItem(timestampKey)
         // Optionally redirect to login
         window.location.href = '/Login'
       } else {
         const errorData = await response.json().catch(() => ({}))
         setError(errorData.error || errorData.detail || 'Failed to load stocks')
-        setStocks([])
+        // If fetch fails and we don't have cached data, show error
+        if (!cachedData) {
+          setStocks([])
+        }
       }
     } catch (err) {
       console.error('Error fetching owned stocks:', err)
-      setError('Network error. Please try again.')
-      setStocks([])
+      // If fetch fails and we don't have cached data, show error
+      if (!cachedData) {
+        setError('Network error. Please try again.')
+        setStocks([])
+      }
     } finally {
       setLoading(false)
     }

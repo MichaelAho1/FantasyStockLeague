@@ -8,6 +8,10 @@ from rest_framework.response import Response
 from catalog.models import LeagueParticipant, Stock, UserLeagueStock, League
 from api.apiUtils.utils import getUserStockProfits, getOwnedStocks, getTotalStockValue
 from api.apiUtils.joinLeague import join_league
+from datetime import date, timedelta
+from catalog.views import get_daily_closing_price
+from catalog.stock_populator import update_stock_prices
+import update_stocks as update_stocks_module
 
 class CreateUserView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -20,16 +24,89 @@ class ViewAllStocks(generics.ListCreateAPIView):
     permission_classes = [AllowAny]
 
     def get(self, request, format=None):
+        try:
+            # Get stocks from database first (before any updates)
+            stock_queryset = Stock.objects.all()
+            
+            # If no stocks exist, return empty list immediately
+            if not stock_queryset.exists():
+                print("No stocks found in database. Run populate_stocks.py to add stocks.")
+                return Response([], status=200)
+            
+            # Try to update stock prices in the background (don't block the response)
+            try:
+                # Force an update when the frontend requests the stocks list so the page shows
+                # the freshest data regardless of market-open checks.
+                update_stocks_module.update_stocks(force=True)
+            except Exception as e:
+                # Don't fail the request if update logic errors — just log and continue
+                # We'll return the existing data from the database
+                import traceback
+                print("Error while attempting to update stocks (returning existing data):")
+                print(traceback.format_exc())
+        except BrokenPipeError:
+            # Client disconnected, ignore this error
+            return Response([], status=200)
+        except Exception as e:
+            # Handle any other connection errors gracefully
+            import traceback
+            print(f"Connection error in ViewAllStocks: {e}")
+            # Still try to return data if possible
+
+        # Helper to find the most recent close (tries back up to 7 days)
+        def get_most_recent_close(ticker):
+            for delta in range(1, 8):
+                try_date = (date.today() - timedelta(days=delta)).strftime('%Y-%m-%d')
+                try:
+                    return float(get_daily_closing_price(ticker, try_date))
+                except Exception:
+                    continue
+            return None
+
+        # Refresh the queryset to get updated prices
+        stock_queryset = Stock.objects.all()
         stocks = []
-        for stock in Stock.objects.all():
+        
+        print(f"Returning {stock_queryset.count()} stocks to frontend")
+        
+        for stock in stock_queryset:
+            try:
+                # Ensure we have valid numeric values
+                current = float(stock.current_price) if stock.current_price else 0.0
+                start = float(stock.start_price) if stock.start_price else 0.0
+            except (ValueError, TypeError):
+                current = 0.0
+                start = 0.0
+
+            # Try to get previous close for daily change calculation
+            prev_close = None
+            try:
+                prev_close = get_most_recent_close(stock.ticker)
+            except Exception:
+                pass
+
+            if prev_close is None:
+                daily_change = None
+                daily_change_percent = None
+            else:
+                daily_change = current - prev_close
+                try:
+                    daily_change_percent = (daily_change / prev_close) * 100 if prev_close != 0 else None
+                except Exception:
+                    daily_change_percent = None
+
             data = {
-                "ticker":stock.ticker,
-                "name":stock.name,
-                "start_price":stock.start_price,
-                "current_price":stock.current_price,
+                "ticker": stock.ticker,
+                "name": stock.name,
+                "start_price": start,  # Already a float
+                "current_price": current,  # Already a float
+                "daily_change": daily_change,
+                "daily_change_percent": daily_change_percent,
             }
             stocks.append(data)
-        return Response(stocks)
+
+        # Always return the stocks data, even if empty
+        return Response(stocks, status=200)
 
 
 class ViewAllOwnedStocks(generics.ListCreateAPIView):

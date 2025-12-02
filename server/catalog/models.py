@@ -18,6 +18,7 @@ class Stock(models.Model):
     start_price = models.DecimalField(max_digits=10, decimal_places=2)
     current_price = models.DecimalField(max_digits=10, decimal_places=2)
     last_updated = models.DateTimeField(auto_now=True)
+    last_api_call_time = models.DateTimeField(null=True, blank=True, help_text="Timestamp of the last API call to Twelve Data")
     
     def __str__(self):
         return f"{self.ticker} - {self.name}"

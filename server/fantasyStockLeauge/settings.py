@@ -144,6 +144,29 @@ CORS_ALLOWED_ORIGINS = [
 
 CORS_ALLOW_CREDENTIALS = True
 
+# Logging configuration to suppress broken pipe warnings
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django.server': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'WARNING',  # Suppress broken pipe warnings
+            'propagate': False,
+        },
+    },
+}
+
 CORS_ALLOW_HEADERS = [
     'accept',
     'accept-encoding',

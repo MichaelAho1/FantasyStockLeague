@@ -2,10 +2,6 @@ from django.shortcuts import render
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseNotFound, HttpResponse
 from django.urls import path, reverse
-import os
-import requests
-from dotenv import load_dotenv
-from datetime import date
 
 from catalog.stock_utils import get_current_stock_price, get_profit_float, get_stock_closing_price
 from catalog.models import LeagueParticipant
@@ -16,9 +12,6 @@ def response_not_found_view(request, exception=None):
 
 # redefine 404 error variable to our custom page
 handler404 = response_not_found_view
-load_dotenv()
-
-api_key = os.getenv("STOCK_API_KEY")
 
 def get_absolute_url(self):
     """Returns the url to access a particular genre instance."""
