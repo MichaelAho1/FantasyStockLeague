@@ -30,9 +30,8 @@ function navBar() {
   const handleLogout = () => {
     const confirmed = window.confirm('Are you sure you want to logout?')
     if (confirmed) {
-      localStorage.removeItem('access_token')
-      localStorage.removeItem('refresh_token')
-      localStorage.removeItem('selected_league_id')
+      // Clear all localStorage to fully reset
+      localStorage.clear()
       navigate('/Login')
     }
   }

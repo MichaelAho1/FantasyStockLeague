@@ -65,7 +65,7 @@ function MyStocks() {
     }
   }
 
-  const fetchOwnedStocks = async () => {
+  const fetchOwnedStocks = async (skipCache = false) => {
     const leagueId = localStorage.getItem('selected_league_id')
     if (!leagueId) {
       setError('Please select a league first')
@@ -80,11 +80,11 @@ function MyStocks() {
       return
     }
 
-    // Try to load from cache first for instant display
-    const cachedData = getCachedOwnedStocks()
-    if (cachedData) {
-      const leagueId = localStorage.getItem('selected_league_id')
-      const timestampKey = `${OWNED_STOCKS_CACHE_TIMESTAMP_KEY}_${leagueId}`
+    // Try to load from cache first for instant display (unless skipCache is true)
+    if (!skipCache) {
+      const cachedData = getCachedOwnedStocks()
+      if (cachedData) {
+        const timestampKey = `${OWNED_STOCKS_CACHE_TIMESTAMP_KEY}_${leagueId}`
       const cachedTimestamp = localStorage.getItem(timestampKey)
       const age = cachedTimestamp ? Math.round((Date.now() - parseInt(cachedTimestamp, 10)) / 1000) : 0
       const remainingTime = cachedTimestamp ? Math.round((CACHE_DURATION - (Date.now() - parseInt(cachedTimestamp, 10))) / 1000) : 0
@@ -113,9 +113,10 @@ function MyStocks() {
       setLoading(false)
       // Cache is valid, don't fetch fresh data
       return
+      }
     }
 
-    // Only fetch if cache is expired or doesn't exist
+    // Fetch fresh data (either cache expired/missing or skipCache is true)
     try {
       console.log("Cache expired or missing. Fetching fresh owned stocks data from API...")
       const response = await fetch(`http://localhost:8000/api/owned-stocks/${leagueId}/`, {
@@ -181,14 +182,16 @@ function MyStocks() {
   }
 
   useEffect(() => {
-    fetchOwnedStocks()
+    // Always fetch from backend on first mount (skip cache)
+    fetchOwnedStocks(true)
     
     // Listen for stock purchase/sale events to refresh immediately
     const handleStocksUpdated = (event) => {
       const leagueId = localStorage.getItem('selected_league_id')
       if (event.detail && event.detail.leagueId === leagueId) {
         console.log('Stocks updated event received, refreshing MyStocks...')
-        fetchOwnedStocks()
+        // On updates, use cache if available for faster response
+        fetchOwnedStocks(false)
       }
     }
     
