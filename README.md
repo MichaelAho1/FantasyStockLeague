@@ -13,18 +13,18 @@
 
 **Fantasy Stock League** turns stock market investing into a competitive multiplayer game. Users join leagues of up to 8 players, each starting with a $10,000 virtual portfolio, and compete over 8-week seasons to build the highest-value holdings using real-time market data.
 
-Think fantasy sports, but the lineup is your portfolio — every trade you make directly affects your standings against real opponents using live stock prices from the Twelve Data API.
+Think fantasy sports, but the lineup is your portfolio - every trade you make directly affects your standings against real opponents using live stock prices from the Twelve Data API.
 
 ---
 
 ## Key Features
 
-- **Real-time price feeds** — Stock prices update every 5 minutes during NYSE market hours (9:30 AM – 4:00 PM EST) via the Twelve Data API, with a fixed 30-minute window tracked at the database level.
-- **League lifecycle automation** — A league automatically sets its start and end date the moment the 8th participant joins, removing any manual setup burden.
-- **Weighted average cost basis** — Buy/sell transactions update a per-user, per-league weighted average price per share, giving accurate profit/loss tracking across partial position changes.
-- **Leaderboard rankings** — Standings are calculated in real time by summing each participant's cash balance and the current market value of their holdings.
-- **Route-level authorization** — JWT-protected routes enforce both authentication (valid token) and league membership (user is a participant in the requested league).
-- **API rate limiting** — An `ApiCallTracker` singleton enforces Twelve Data API quotas (5 calls per 30-minute fixed window) to prevent third-party throttling.
+- **Real-time price feeds** - Stock prices update every 5 minutes during NYSE market hours (9:30 AM – 4:00 PM EST) via the Twelve Data API, with a fixed 30-minute window tracked at the database level.
+- **League lifecycle automation** - A league automatically sets its start and end date the moment the 8th participant joins, removing any manual setup burden.
+- **Weighted average cost basis** - Buy/sell transactions update a per-user, per-league weighted average price per share, giving accurate profit/loss tracking across partial position changes.
+- **Leaderboard rankings** - Standings are calculated in real time by summing each participant's cash balance and the current market value of their holdings.
+- **Route-level authorization** - JWT-protected routes enforce both authentication (valid token) and league membership (user is a participant in the requested league).
+- **API rate limiting** - An `ApiCallTracker` singleton enforces Twelve Data API quotas (5 calls per 30-minute fixed window) to prevent third-party throttling.
 
 ---
 
@@ -39,7 +39,7 @@ Think fantasy sports, but the lineup is your portfolio — every trade you make 
 | **React 19 + Vite** | Frontend SPA | React 19's concurrent features pair with Vite's near-instant HMR for a fast dev loop |
 | **React Router v7** | Client routing | Nested route guards (auth + league membership) are cleanly expressed as wrapper components |
 | **CSS Modules** | Component styling | Scoped class names prevent global style bleed without the runtime overhead of CSS-in-JS |
-| **WhiteNoise** | Static file serving | Serves React build artifacts from Django with correct cache headers — no extra CDN required in staging |
+| **WhiteNoise** | Static file serving | Serves React build artifacts from Django with correct cache headers - no extra CDN required in staging |
 
 ---
 
@@ -207,35 +207,3 @@ POST /api/leagues/
   { "username": "trader2", "portfolio_value": 10835.00, "rank": 2 }
 ]
 ```
-
----
-
-## Screenshots
-
-### League Dashboard
-
-<!-- Add screenshot: league leaderboard + owned stocks widget -->
-> *Leaderboard showing ranked participants with portfolio values and owned stock tiles.*
-
-### Stock Explorer
-
-<!-- Add screenshot: stock list with search bar and trade modal open -->
-> *Paginated stock table with real-time prices, search, and buy/sell modal.*
-
-### Leagues Page
-
-<!-- Add screenshot: leagues page with create/join forms -->
-> *Create or join leagues; pending leagues show participant count progress toward the 8-player start threshold.*
-
----
-
-## Contact
-
-**Michael Aho**
-- GitHub: [@MichaelAho1](https://github.com/MichaelAho1)
-
----
-
-## License
-
-This project is licensed under the MIT License.
