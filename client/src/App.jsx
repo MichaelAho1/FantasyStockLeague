@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom"
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import Signup from "./PublicPages/Signup/signup.jsx"
 import Login from "./PublicPages/Login/login.jsx"
 import Home from "./PrivatePages/Home/home.jsx"
@@ -12,6 +12,7 @@ function App() {
   return (
       <BrowserRouter>
         <Routes>
+        <Route path="/" element={<Navigate to="/Login" replace />}></Route>
         <Route path="/Signup" element={<Signup></Signup>}></Route>
         <Route path="/Login" element={<Login></Login>}></Route>
 
